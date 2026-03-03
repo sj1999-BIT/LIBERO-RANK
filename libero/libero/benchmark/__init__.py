@@ -2,6 +2,7 @@ import abc
 import os
 import glob
 import random
+import tempfile
 import torch
 
 from typing import List, NamedTuple, Type
@@ -10,6 +11,28 @@ from libero.libero.benchmark.libero_suite_task_map import libero_task_map
 
 BENCHMARK_MAPPING = {}
 
+
+# ── HOW TO REGISTER A NEW BENCHMARK ──────────────────────────────────────────
+# A benchmark class is registered by decorating it with @register_benchmark.
+# The class name (case-insensitive) becomes its lookup key in BENCHMARK_MAPPING,
+# so `get_benchmark("LIBERO_SPATIAL")` and `get_benchmark("libero_spatial")` both work.
+#
+# Standard requirements for a new benchmark:
+#   1. TASK MAP ENTRY: Add the suite name → [task filename list] to libero_task_map
+#      in benchmark/libero_suite_task_map.py so _make_benchmark() can find tasks.
+#   2. BDDL FILES ON DISK: Each task needs a <task_name>.bddl file located at:
+#         get_libero_path("bddl_files") / <suite_name> / <task_name>.bddl
+#   3. INIT STATE FILES ON DISK: Each task needs a <task_name>.pruned_init file at:
+#         get_libero_path("init_states") / <suite_name> / <task_name>.pruned_init
+#   4. TASK OBJECTS: task_maps[suite_name] must be populated with Task NamedTuples
+#      at module load time (see the loop over libero_suites above).
+#   5. BENCHMARK CLASS: Subclass Benchmark, set self.name = suite_name, decorate
+#      with @register_benchmark, and call self._make_benchmark() in __init__.
+#
+# If your benchmark generates BDDL at runtime instead of reading from disk,
+# you must override _make_benchmark(), get_task_bddl_file_path(), and
+# get_task_init_states() — see LIBERO_DEPTH_ORDER below for the pattern.
+# ─────────────────────────────────────────────────────────────────────────────
 
 def register_benchmark(target_class):
     """We design the mapping to be case-INsensitive."""
@@ -113,6 +136,13 @@ class Benchmark(abc.ABC):
         self.task_order_index = task_order_index
 
     def _make_benchmark(self):
+        # REQUIREMENT: task_maps[self.name] must already be populated at module
+        # load time (via libero_suite_task_map + the loop over libero_suites).
+        # REQUIREMENT: self.name must match the key used in that loop.
+        # REQUIREMENT: task_orders must have a valid entry at self.task_order_index
+        # for all 10-task suites; libero_90 uses the natural order instead.
+        # OVERRIDE NEEDED: If tasks are not pre-registered in task_maps (e.g. they
+        # are generated at runtime), subclasses must override this method entirely.
         tasks = list(task_maps[self.name].values())
         if self.name == "libero_90":
             self.tasks = tasks
@@ -134,6 +164,10 @@ class Benchmark(abc.ABC):
         return [task.bddl_file for task in self.tasks]
 
     def get_task_bddl_file_path(self, i):
+        # REQUIREMENT: the .bddl file must exist at:
+        #   get_libero_path("bddl_files") / problem_folder / bddl_file
+        # OVERRIDE NEEDED: If BDDL is generated at runtime and stored at an
+        # arbitrary path (e.g. a tempfile), override this to return task.bddl_path.
         bddl_file_path = os.path.join(
             get_libero_path("bddl_files"),
             self.tasks[i].problem_folder,
@@ -156,6 +190,11 @@ class Benchmark(abc.ABC):
         return self.task_embs[i]
 
     def get_task_init_states(self, i):
+        # REQUIREMENT: a .pruned_init file must exist at:
+        #   get_libero_path("init_states") / problem_folder / init_states_file
+        # OVERRIDE NEEDED: If there are no pre-saved init states (e.g. because
+        # the environment is reset from scratch each episode), override this to
+        # return None or generate initial states on-the-fly.
         init_states_path = os.path.join(
             get_libero_path("init_states"),
             self.tasks[i].problem_folder,
@@ -217,3 +256,184 @@ class LIBERO_100(Benchmark):
         super().__init__(task_order_index=task_order_index)
         self.name = "libero_100"
         self._make_benchmark()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LIBERO_DEPTH_ORDER — SUMMARY OF WHAT IS NEEDED / WHAT DIFFERS
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Standard libero benchmarks (LIBERO_SPATIAL, LIBERO_GOAL, …) follow this flow:
+#   1. bddl files are pre-authored and live on disk under bddl_files/<suite>/
+#   2. init-state files are pre-saved under init_files/<suite>/
+#   3. libero_suite_task_map.py lists every task filename for the suite
+#   4. At module load the loop over libero_suites builds task_maps[suite_name]
+#      from Task NamedTuples  (name, language, problem, problem_folder, bddl_file,
+#      init_states_file)
+#   5. A @register_benchmark class sets self.name and calls _make_benchmark()
+#      which reads from task_maps[self.name] and reorders by task_orders[index]
+#
+# LIBERO_DEPTH_ORDER breaks assumptions 1-4 because its BDDL is procedurally
+# generated at runtime by generate_random_bddl() in generate_bddl.py.
+# The following pieces are therefore required or different:
+#
+#   [TASK OBJECT] — DepthOrderTask (plain class, NOT a NamedTuple)
+#       NamedTuple is immutable and lacks the extra fields needed, so
+#       DepthOrderTask is a plain class that mirrors the Task interface
+#       plus runtime-only fields:
+#           • bddl_path        — full path to the tempfile written by generate_random_bddl()
+#           • target_object    — instance name (e.g. "cookies_2") of the correct pick target
+#           • target_region_center — (x, y) centroid of the target's table cell, used for eval
+#       init_states_file is None (no pre-saved states).
+#
+#   [NO task_maps ENTRY] — do NOT add "libero_depth_order" to libero_suites or
+#       libero_suite_task_map.py.  _make_benchmark() would crash looking it up.
+#
+#   [OVERRIDE _make_benchmark()] — replace with generate_tasks(), which calls
+#       generate_random_bddl() once per task, writes to self._tmpdir, and appends
+#       a DepthOrderTask to self.tasks.
+#
+#   [OVERRIDE get_task_bddl_file_path(i)] — return self.tasks[i].bddl_path
+#       (the full tempfile path) instead of assembling a path under bddl_files/.
+#
+#   [OVERRIDE get_task_init_states(i)] — return None (or raise NotImplementedError).
+#       The env must be reset from scratch each episode; there are no .pruned_init
+#       files.  Callers that depend on init states must handle None gracefully.
+#
+#   [TEMP DIRECTORY] — self._tmpdir = tempfile.mkdtemp(prefix="libero_depth_order_")
+#       holds the generated .bddl files for the session lifetime.  Callers are
+#       responsible for cleanup (or rely on OS temp-dir sweeping).
+#
+#   [LANGUAGE] — DEPTH_ORDER_LANGUAGES supplies the natural-language instructions
+#       (e.g. "Place the object closest to the camera in the bowl.").
+#       generate_random_bddl() also resolves the generic word "object" → the
+#       sampled object type and stores resolved_language on the returned dict.
+#
+#   [SEED STRATEGY] — base_seed + task index keeps tasks reproducible within a
+#       session while still varying per task.
+#
+#   [WHAT LIBERO STILL PROVIDES (no changes needed elsewhere)]
+#       • OffScreenRenderEnv / bddl_file_name kwarg — pass bddl_path directly
+#       • @register_benchmark decorator — works unchanged; class name is the key
+#       • get_benchmark("LIBERO_DEPTH_ORDER") — works unchanged via BENCHMARK_MAPPING
+#       • get_task(i), get_num_tasks(), get_task_names() — inherited, work unchanged
+#         as long as self.tasks and self.n_tasks are populated by generate_tasks()
+# ══════════════════════════════════════════════════════════════════════════════
+
+from typing import List, Optional
+from .generate_bddl import generate_random_bddl, OBJECT_POOL, BOWL_TYPE
+
+# All object types that can appear as pick targets (everything except the bowl).
+NON_BOWL_POOL = [obj for obj in OBJECT_POOL if obj != BOWL_TYPE]
+
+# just for testing, future will improve it
+DEPTH_ORDER_LANGUAGES = [
+    "Place the object closest to the camera in the bowl.",
+    "Place the object furtherest to the camera in the bowl.",
+    "Place the object 2nd closest to the camera in the bowl.",
+    "Place the object 3rd closest to the camera in the bowl.",
+]
+
+class DepthOrderTask:
+    """
+    A Task-like object for a runtime-generated depth-order task.
+
+    Cannot subclass Task (a NamedTuple) because NamedTuple __new__ requires
+    all six fields up front and the instance is immutable.  This plain class
+    exposes the same attribute interface so it works everywhere Task does.
+    """
+    def __init__(self, name, language, bddl_path, target_object, target_region_center):
+        self.name = name
+        self.language = language
+        self.problem = "LIBERO_DEPTH_ORDER"
+        self.problem_folder = "libero_depth_order"
+        self.bddl_file = os.path.basename(bddl_path)
+        self.bddl_path = bddl_path          # full path (temp file)
+        self.init_states_file = None        # no pre-saved init states
+        self.target_object = target_object
+        self.target_region_center = target_region_center
+
+
+@register_benchmark
+class LIBERO_DEPTH_ORDER(Benchmark):
+    """
+    A benchmark suite where tasks are generated at runtime using
+    relational depth-order predicates (closest, furthest, 2nd closest, …).
+    Each call to generate_tasks() produces a fresh set of randomized tasks.
+    """
+    def __init__(
+        self,
+        task_order_index: int = 0,
+        num_tasks: int = 10,
+        num_objects: int = 5,
+        grid_size: int = 20,
+        seed: Optional[int] = None,
+        languages: Optional[List[str]] = None,
+        object_types: Optional[List[str]] = None,
+    ):
+        super().__init__(task_order_index=task_order_index)
+        self.name = "libero_depth_order"
+        self.num_objects = num_objects
+        self.grid_size = grid_size
+        self.base_seed = seed if seed is not None else random.randint(0, 10_000)
+        self.languages = languages or DEPTH_ORDER_LANGUAGES
+        self.object_types = object_types or NON_BOWL_POOL
+
+        # Temporary directory to hold generated BDDL files for this session
+        self._tmpdir = tempfile.mkdtemp(prefix="libero_depth_order_")
+
+        self.tasks: List[DepthOrderTask] = []
+        self.n_tasks = 0
+
+        self.generate_tasks(num_tasks)
+
+    # ------------------------------------------------------------------
+    # Task generation  (replaces _make_benchmark for runtime BDDL)
+    # ------------------------------------------------------------------
+
+    def generate_tasks(self, num_tasks: int):
+        """
+        Generate `num_tasks` randomized depth-order tasks.
+
+        Each task gets a deterministic seed (base_seed + task_index) so the
+        benchmark is reproducible when the same base_seed is used.  Object
+        types cycle through NON_BOWL_POOL (or the caller-supplied list) so
+        that the suite covers a variety of object appearances.
+        """
+        for i in range(num_tasks):
+            seed = self.base_seed + i
+            language = self.languages[i % len(self.languages)]
+            object_type = self.object_types[i % len(self.object_types)]
+            output_path = os.path.join(self._tmpdir, f"task_{i:03d}.bddl")
+
+            result = generate_random_bddl(
+                language=language,
+                seed=seed,
+                num_objects=self.num_objects,
+                grid_size=self.grid_size,
+                object_types=object_type,
+                output_path=output_path,
+                save_bddl=True,
+            )
+
+            task = DepthOrderTask(
+                name=f"depth_order_task_{i:03d}",
+                language=language,
+                bddl_path=result["bddl_path"],
+                target_object=result["target_object"],
+                target_region_center=result["target_region_center"],
+            )
+            self.tasks.append(task)
+
+        self.n_tasks = len(self.tasks)
+
+    # ------------------------------------------------------------------
+    # Overrides: BDDL path and init states differ from standard benchmarks
+    # ------------------------------------------------------------------
+
+    def get_task_bddl_file_path(self, i):
+        # BDDL was written to a tempfile; return its full path directly.
+        return self.tasks[i].bddl_path
+
+    def get_task_init_states(self, i):
+        # No pre-saved init states; the environment is reset from scratch.
+        return None

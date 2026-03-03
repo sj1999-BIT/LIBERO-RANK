@@ -53,6 +53,9 @@ class ControlEnv:
         self.problem_name = problem_info["problem_name"]
         self.domain_name = problem_info["domain_name"]
         self.language_instruction = problem_info["language_instruction"]
+        print(f"[TASK_MAPPING] bddl file: {bddl_file_name}")
+        print(f"[TASK_MAPPING] problem_name from bddl: '{self.problem_name}'")
+        print(f"[TASK_MAPPING] resolved class: {TASK_MAPPING[self.problem_name]}")
         self.env = TASK_MAPPING[self.problem_name](
             bddl_file_name,
             robots=robots,

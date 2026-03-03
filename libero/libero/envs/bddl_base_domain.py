@@ -29,6 +29,7 @@ TASK_MAPPING = {}
 def register_problem(target_class):
     """We design the mapping to be case-INsensitive."""
     TASK_MAPPING[target_class.__name__.lower()] = target_class
+    print(f"[TASK_MAPPING] registered: '{target_class.__name__.lower()}' -> {target_class}")
 
 
 import time
@@ -775,6 +776,49 @@ class BDDLBaseDomain(SingleArmEnv):
                     body_id = self.sim.model.body_name2id(obj.root_body)
                     self.sim.model.body_pos[body_id] = obj_pos
                     self.sim.model.body_quat[body_id] = obj_quat
+
+            # Ensure simulator state is up-to-date before reading positions/sizes
+            try:
+                self.sim.forward()
+            except Exception:
+                pass
+
+            # SHUIJIE DEBUG: print all objects and fixtures with sizes and coordinates
+            # print("SHUIJIE DEBUG: Listing all objects (movable and fixtures) with sizes and positions:")
+            # Combine movable objects and fixtures
+            all_query = {}
+            all_query.update(self.objects_dict)
+            all_query.update(self.fixtures_dict)
+            for name, body in all_query.items():
+                try:
+                    body_id = self.sim.model.body_name2id(body.root_body)
+                except Exception:
+                    print(f"SHUIJIE DEBUG: {name}: failed to resolve body id")
+                    continue
+                pos = np.array(self.sim.data.body_xpos[body_id]).tolist()
+                quat = np.array(self.sim.data.body_xquat[body_id]).tolist()
+                # collect geom sizes belonging to this body
+                geom_sizes = []
+                try:
+                    for gid in range(self.sim.model.ngeom):
+                        if int(self.sim.model.geom_bodyid[gid]) == int(body_id):
+                            geom_sizes.append(tuple(self.sim.model.geom_size[gid]))
+                except Exception:
+                    pass
+                # print(f"SHUIJIE DEBUG: {name} | body_id={body_id} | pos={pos} | quat={quat} | geom_sizes={geom_sizes}")
+
+            # SHUIJIE DEBUG: print site objects (regions/sites)
+            try:
+                for site_name, site_obj in self.object_sites_dict.items():
+                    try:
+                        site_pos = site_obj.site_pos
+                        site_size = site_obj.size
+                        parent = getattr(site_obj, "parent_name", None)
+                        # print(f"SHUIJIE DEBUG: SITE {site_name} | parent={parent} | site_pos={site_pos} | size={site_size}")
+                    except Exception:
+                        print(f"SHUIJIE DEBUG: SITE {site_name} | failed to read attributes")
+            except Exception:
+                pass
 
     def _check_success(self):
         """
