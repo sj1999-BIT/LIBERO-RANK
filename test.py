@@ -138,6 +138,7 @@ if __name__ == "__main__":
         obs = env.reset()
 
         # ── get ACTUAL target position from obs, not region center ────────────────
+        # target_key = result["target_place"]  # e.g. "cookies_1"
         target_key = result["target_object"]  # e.g. "cookies_1"
         target_pos  = obs[f"{target_key}_pos"]  # actual sim position (x, y, z)
         target_quat = obs[f"{target_key}_quat"]

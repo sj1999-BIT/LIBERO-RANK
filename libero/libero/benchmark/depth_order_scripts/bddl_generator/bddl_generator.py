@@ -191,13 +191,6 @@ def generate_bddl(
           )
         )
     """)
-    
-    # find the location of the target object (center of its assigned region) to be used as the target location for evaluation
-    bounds = regions[inst2region[target_object]]
-    target_region_center = (
-        (bounds[0] + bounds[2]) / 2.0,
-        (bounds[1] + bounds[3]) / 2.0,
-    )
 
     if save_bddl:
         if output_path is None:
@@ -211,8 +204,8 @@ def generate_bddl(
         "bddl": bddl,
         "bddl_path":             os.path.abspath(output_path),
         "target_object":         target_object,
-        "target_region":         inst2region[target_object],
-        "target_region_center":  target_region_center,
+        "target_place":          bowl_instance, 
+        "target_region":         inst2region[target_object]
     }
 
 
@@ -274,6 +267,7 @@ def generate_middle_pick_task_bddl(
                          target_object=middle_object, 
                          save_bddl=save_bddl, 
                          output_path=output_path)
+
 
     
 
