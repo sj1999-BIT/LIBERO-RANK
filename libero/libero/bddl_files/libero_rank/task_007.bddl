@@ -1,6 +1,6 @@
     (define (problem LIBERO_TABLETOP_MANIPULATION)
       (:domain robosuite)
-      (:language Pick the object in the middle and place in the bowl.)
+      (:language Pick the furtherest moka_pot and place in the bowl.)
       (:regions
         (cell_0_0
     (:target main_table)
@@ -2807,27 +2807,25 @@
         main_table - table
       )
       (:objects
-        orange_juice_0 orange_juice_1 orange_juice_2 - orange_juice
-tomato_sauce_0 - tomato_sauce
-alphabet_soup_0 alphabet_soup_1 - alphabet_soup
-milk_0 - milk
+        moka_pot_0 moka_pot_1 moka_pot_2 moka_pot_3 moka_pot_4 moka_pot_5 moka_pot_6 moka_pot_7 - moka_pot
 akita_black_bowl_0 - akita_black_bowl
       )
       (:obj_of_interest
-        milk_0
+        moka_pot_5
         akita_black_bowl_0
       )
       (:init
-        (On orange_juice_0 main_table_cell_9_18)
-(On tomato_sauce_0 main_table_cell_14_5)
-(On alphabet_soup_0 main_table_cell_4_7)
-(On orange_juice_1 main_table_cell_18_4)
-(On alphabet_soup_1 main_table_cell_5_17)
-(On milk_0 main_table_cell_10_8)
-(On orange_juice_2 main_table_cell_17_10)
-(On akita_black_bowl_0 main_table_cell_11_13)
+        (On moka_pot_0 main_table_cell_4_3)
+(On moka_pot_1 main_table_cell_19_4)
+(On moka_pot_2 main_table_cell_16_19)
+(On moka_pot_3 main_table_cell_3_8)
+(On moka_pot_4 main_table_cell_12_2)
+(On moka_pot_5 main_table_cell_0_16)
+(On moka_pot_6 main_table_cell_14_12)
+(On moka_pot_7 main_table_cell_6_19)
+(On akita_black_bowl_0 main_table_cell_9_9)
       )
       (:goal
-        (And (On milk_0 akita_black_bowl_0))
+        (And (On moka_pot_5 akita_black_bowl_0))
       )
     )

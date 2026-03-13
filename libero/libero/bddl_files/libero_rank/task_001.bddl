@@ -1,6 +1,6 @@
     (define (problem LIBERO_TABLETOP_MANIPULATION)
       (:domain robosuite)
-      (:language Pick the object in the middle and place in the bowl.)
+      (:language Pick the closest milk and place in the bowl.)
       (:regions
         (cell_0_0
     (:target main_table)
@@ -2807,26 +2807,25 @@
         main_table - table
       )
       (:objects
-        ketchup_0 - ketchup
-moka_pot_0 - moka_pot
-alphabet_soup_0 - alphabet_soup
-milk_0 - milk
-glazed_rim_porcelain_ramekin_0 - glazed_rim_porcelain_ramekin
+        milk_0 milk_1 milk_2 milk_3 milk_4 milk_5 milk_6 milk_7 - milk
 akita_black_bowl_0 - akita_black_bowl
       )
       (:obj_of_interest
-        glazed_rim_porcelain_ramekin_0
+        milk_0
         akita_black_bowl_0
       )
       (:init
-        (On ketchup_0 main_table_cell_5_7)
-(On moka_pot_0 main_table_cell_14_9)
-(On alphabet_soup_0 main_table_cell_6_15)
-(On milk_0 main_table_cell_19_18)
-(On glazed_rim_porcelain_ramekin_0 main_table_cell_7_11)
-(On akita_black_bowl_0 main_table_cell_1_7)
+        (On milk_0 main_table_cell_18_8)
+(On milk_1 main_table_cell_15_2)
+(On milk_2 main_table_cell_14_10)
+(On milk_3 main_table_cell_11_16)
+(On milk_4 main_table_cell_1_7)
+(On milk_5 main_table_cell_3_12)
+(On milk_6 main_table_cell_2_2)
+(On milk_7 main_table_cell_7_12)
+(On akita_black_bowl_0 main_table_cell_8_0)
       )
       (:goal
-        (And (On glazed_rim_porcelain_ramekin_0 akita_black_bowl_0))
+        (And (On milk_0 akita_black_bowl_0))
       )
     )

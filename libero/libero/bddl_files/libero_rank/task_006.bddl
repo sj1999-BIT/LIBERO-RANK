@@ -2807,25 +2807,24 @@
         main_table - table
       )
       (:objects
-        orange_juice_0 - orange_juice
-milk_0 - milk
-moka_pot_0 moka_pot_1 - moka_pot
-alphabet_soup_0 - alphabet_soup
+        milk_0 milk_1 milk_2 - milk
+ketchup_0 - ketchup
+moka_pot_0 - moka_pot
 akita_black_bowl_0 - akita_black_bowl
       )
       (:obj_of_interest
-        alphabet_soup_0
+        ketchup_0
         akita_black_bowl_0
       )
       (:init
-        (On orange_juice_0 main_table_cell_13_19)
-(On milk_0 main_table_cell_0_2)
-(On moka_pot_0 main_table_cell_9_12)
-(On alphabet_soup_0 main_table_cell_3_13)
-(On moka_pot_1 main_table_cell_2_18)
-(On akita_black_bowl_0 main_table_cell_18_13)
+        (On milk_0 main_table_cell_18_14)
+(On milk_1 main_table_cell_4_12)
+(On milk_2 main_table_cell_8_17)
+(On ketchup_0 main_table_cell_13_13)
+(On moka_pot_0 main_table_cell_19_1)
+(On akita_black_bowl_0 main_table_cell_1_4)
       )
       (:goal
-        (And (On alphabet_soup_0 akita_black_bowl_0))
+        (And (On ketchup_0 akita_black_bowl_0))
       )
     )

@@ -9,6 +9,7 @@ Type 3: 7 different objects + 1 bowl
 
 """
 
+import re
 import numpy as np
 
 
@@ -98,7 +99,10 @@ def allocate_obj_to_region(obj_list,
                            extra_regions: Optional[dict] = None,
                            max_attempt: Optional[int] = 100,
                            seed: Optional[int] = None,
-                           need_middle_object: bool = False
+                           need_middle_object: bool = False,
+                           need_allocation_dist: bool = False,
+                           allocated_object_type: str = None,
+                           bowl_type: str = BOWL_TYPE
                            ):
     
     # Create a random number generator with the given seed for reproducibility
@@ -110,7 +114,7 @@ def allocate_obj_to_region(obj_list,
 
     # add a bowl instance
     if has_bowl:
-        obj_list += [f"{BOWL_TYPE}_0"]
+        obj_list += [f"{bowl_type}_0"]
     
     for _ in range(max_attempt):
         # get a list of all the region names for easier removal
@@ -131,6 +135,7 @@ def allocate_obj_to_region(obj_list,
                 # remove regions to prevent overlap, each object has a its own proximit to be removed
                 remove_regions(region_names, inst2region[obj], spacing=OBJECT_SPACING_REQUIREMENTS[obj_type])
 
+            # need to make sure one object is centered
             if need_middle_object:
                 # success check: one object must be the median on both x and y axes
                 non_bowl = [obj for obj in inst2region if BOWL_TYPE not in obj]
@@ -142,6 +147,30 @@ def allocate_obj_to_region(obj_list,
 
                 print(f"[DEBUG INFO allocate_obj_to_region]: found mid object {sorted_by_x[mid]}")
 
+            # need to make sure all object has different distance to the target object
+            if need_allocation_dist:
+                if allocated_object_type is None:
+                    raise RuntimeError("allocated object type cannot be None if need_allocation_dist is true")
+
+                surrounding_obj_list = [obj for obj in obj_list if obj is not allocated_object_type]
+
+                ref_x, ref_y = parse_cell_region(inst2region[allocated_object_type])
+
+                # collect distance from each object to the target object
+                distances = []
+                for obj in surrounding_obj_list:
+                    ox, oy = parse_cell_region(inst2region[obj])
+                    dist_squared = ((ox - ref_x) ** 2 + (oy - ref_y) ** 2)
+                    distances.append(dist_squared)
+
+                # all distances must be unique — no two objects equidistant from reference
+                if len(distances) != len(set(distances)):
+                    continue  # retry allocation
+
+                distance_map = {obj: dist for obj, dist in zip(surrounding_obj_list, distances)}
+
+                
+                return inst2region, regions, distance_map
                 
             # success
             return inst2region, regions
@@ -156,5 +185,50 @@ def allocate_obj_to_region(obj_list,
     )
 
 
+"""
+get the rank that the instruction is trying to find based on the phrasing
+Parse the language instruction to get a 0-based ranking index.
+Ranking is by ascending x (closest = smallest x = closest to camera).
+"""
+def parse_ranking_index(language: str, num_items: int) -> int:
 
+    lang = language.lower()
 
+    # ── size-based (largest / smallest) ──────────────────────────────────────
+    # list is sorted smallest → largest, so:
+    #   largest  → index -1, 2nd largest → index -2, Nth largest → index -N
+    #   smallest → index  0, 2nd smallest → index  1, Nth smallest → index N-1
+
+    m = re.search(r"(\d+)(?:st|nd|rd|th)?\s+largest", lang)
+    if m:
+        return -int(m.group(1))
+
+    m = re.search(r"(\d+)(?:st|nd|rd|th)?\s+smallest", lang)
+    if m:
+        return int(m.group(1)) - 1
+
+    if re.search(r"\blargest\b", lang):
+        return -1
+
+    if re.search(r"\bsmallest\b", lang):
+        return 0
+
+    # ── distance-based (closest / furthest) ──────────────────────────────────
+
+    if re.search(r"\bclosest\b", lang) and not re.search(r"\d", lang):
+        return 0
+    if re.search(r"\bfurthest\b|\bfurtherest\b|\bfarthest\b", lang) and not re.search(r"\d", lang):
+        return -1
+
+    m = re.search(r"(\d+)(?:st|nd|rd|th)?(?:\s+\S+)*?\s+closest", lang)
+    if m:
+        return int(m.group(1)) - 1
+
+    m = re.search(r"(\d+)(?:st|nd|rd|th)?(?:\s+\S+)*?\s+(?:furthest|furtherest|farthest)", lang)
+    if m:
+        return -int(m.group(1))
+
+    raise ValueError(
+        f"Cannot parse ranking from language: '{language}'. "
+        "Use 'closest', 'furthest', 'largest', 'smallest', or ordinals like '2nd closest', '3rd largest'."
+    )

@@ -2807,25 +2807,28 @@
         main_table - table
       )
       (:objects
-        orange_juice_0 orange_juice_1 - orange_juice
+        milk_0 - milk
+alphabet_soup_0 - alphabet_soup
+glazed_rim_porcelain_ramekin_0 glazed_rim_porcelain_ramekin_1 glazed_rim_porcelain_ramekin_2 - glazed_rim_porcelain_ramekin
+tomato_sauce_0 - tomato_sauce
 ketchup_0 - ketchup
-glazed_rim_porcelain_ramekin_0 - glazed_rim_porcelain_ramekin
-butter_0 - butter
 akita_black_bowl_0 - akita_black_bowl
       )
       (:obj_of_interest
-        orange_juice_1
+        glazed_rim_porcelain_ramekin_1
         akita_black_bowl_0
       )
       (:init
-        (On orange_juice_0 main_table_cell_16_17)
-(On orange_juice_1 main_table_cell_12_9)
-(On ketchup_0 main_table_cell_5_2)
-(On glazed_rim_porcelain_ramekin_0 main_table_cell_11_15)
-(On butter_0 main_table_cell_18_7)
-(On akita_black_bowl_0 main_table_cell_14_2)
+        (On milk_0 main_table_cell_17_18)
+(On alphabet_soup_0 main_table_cell_9_8)
+(On glazed_rim_porcelain_ramekin_0 main_table_cell_6_13)
+(On tomato_sauce_0 main_table_cell_19_14)
+(On ketchup_0 main_table_cell_18_1)
+(On glazed_rim_porcelain_ramekin_1 main_table_cell_13_8)
+(On glazed_rim_porcelain_ramekin_2 main_table_cell_5_2)
+(On akita_black_bowl_0 main_table_cell_4_8)
       )
       (:goal
-        (And (On orange_juice_1 akita_black_bowl_0))
+        (And (On glazed_rim_porcelain_ramekin_1 akita_black_bowl_0))
       )
     )

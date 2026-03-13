@@ -1,5 +1,6 @@
 import abc
 import os
+import re
 import glob
 import random
 import tempfile
@@ -352,13 +353,25 @@ class LIBERO_RANK(Benchmark):
     """
     A benchmark suite where tasks are generated at runtime using
     relational depth-order predicates (closest, furthest, 2nd closest, …).
-    Each call to generate_tasks() produces a fresh set of randomized tasks.
+    Each call to generate_tasks() produces a fresh set of randomized tasks,
+    stratified evenly across all implemented task categories.
     """
+
+    # Regex patterns that identify each category from the language string
+    CATEGORY_PATTERNS = {
+        "middle":            lambda l: "middle" in l,
+        "egocentric_pick":   lambda l: bool(re.search(r"pick the.*(closest|furthest|furtherest|farthest|\d+\w*)\s+object", l)),
+        "allocentric_pick":  lambda l: bool(re.search(r"pick the.*object.*(closest|furthest|furtherest|farthest).*bowl", l)),
+        "egocentric_place":  lambda l: bool(re.search(r"place in the.*(closest|furthest|furtherest|farthest|\d+\w*)\s+bowl", l)),
+        "allocentric_place": lambda l: bool(re.search(r"bowl.*(closest|furthest|furtherest|farthest).*\bit\b", l)),
+        "feature":           lambda l: bool(re.search(r"\b(largest|smallest)\b", l)),
+    }
+
     def __init__(
         self,
         task_order_index: int = 0,
         num_tasks: int = 10,
-        num_objects: int = 5,
+        num_objects: int = 10,
         grid_size: int = 20,
         seed: Optional[int] = None,
         languages: Optional[List[str]] = None,
@@ -369,40 +382,55 @@ class LIBERO_RANK(Benchmark):
         self.num_objects = num_objects
         self.grid_size = grid_size
         self.base_seed = seed if seed is not None else random.randint(0, 10_000)
-        self.languages = languages or INSTRUCTION_TEMPLATES
         self.object_types = object_types or NON_BOWL_POOL
 
-        # Temporary directory to hold generated BDDL files for this session
-        self.dir = self._tmpdir = os.path.join(
-            get_libero_path("bddl_files"), "libero_rank"
-        )
+        # Bucket INSTRUCTION_TEMPLATES by category at init time
+        all_languages = languages or INSTRUCTION_TEMPLATES
+        self.category_templates: dict[str, list[str]] = {k: [] for k in self.CATEGORY_PATTERNS}
+        for lang in all_languages:
+            l = lang.lower()
+            for category, match_fn in self.CATEGORY_PATTERNS.items():
+                if match_fn(l):
+                    self.category_templates[category].append(lang)
+                    break  # each template belongs to exactly one category
 
-        os.makedirs(self.dir, exist_ok=True)
-        
+        # Drop empty categories (not yet implemented)
+        self.category_templates = {k: v for k, v in self.category_templates.items() if v}
+        self.categories = list(self.category_templates.keys())
+        print(f"[DEBUG INFO LIBERO_RANK]: {len(self.categories)} active categories: {self.categories}")
+
+        self._tmpdir = os.path.join(get_libero_path("bddl_files"), "libero_rank")
+        os.makedirs(self._tmpdir, exist_ok=True)
 
         self.tasks: List[DepthRankTask] = []
         self.n_tasks = 0
-
         self.generate_tasks(num_tasks)
 
     # ------------------------------------------------------------------
-    # Task generation  (replaces _make_benchmark for runtime BDDL)
+    # Task generation
     # ------------------------------------------------------------------
 
     def generate_tasks(self, num_tasks: int):
         """
-        Generate `num_tasks` randomized depth-order tasks.
-
-        Each task gets a deterministic seed (base_seed + task_index) so the
-        benchmark is reproducible when the same base_seed is used.  Object
-        types cycle through NON_BOWL_POOL (or the caller-supplied list) so
-        that the suite covers a variety of object appearances.
+        Generate `num_tasks` tasks stratified evenly across all active
+        categories.  Within each category templates and object types cycle
+        deterministically, so the suite is reproducible given the same seed.
         """
+        # track per-category counters so cycling is independent per category
+        category_counters = {k: 0 for k in self.categories}
+
         for i in range(num_tasks):
             seed = self.base_seed + i
-            language = self.languages[i % len(self.languages)]
-            object_type = self.object_types[i % len(self.object_types)]
-            output_path = os.path.join(self._tmpdir, f"task_{i:03d}.bddl")
+
+            # round-robin across categories
+            category = self.categories[i % len(self.categories)]
+            counter  = category_counters[category]
+            category_counters[category] += 1
+
+            templates    = self.category_templates[category]
+            language     = templates[counter % len(templates)]
+            object_type  = self.object_types[counter % len(self.object_types)]
+            output_path  = os.path.join(self._tmpdir, f"task_{i:03d}.bddl")
 
             result = generate_random_rank_task_bddl(
                 language=language,
@@ -414,6 +442,10 @@ class LIBERO_RANK(Benchmark):
                 save_bddl=True,
             )
 
+            if result is None:
+                print(f"[Warning] task {i:03d} skipped — category '{category}' returned None: {language}")
+                continue
+
             task = DepthRankTask(
                 name=f"depth_rank_task_{i:03d}",
                 language=language,
@@ -421,17 +453,16 @@ class LIBERO_RANK(Benchmark):
                 target_object=result["target_object"],
             )
             self.tasks.append(task)
+            print(f"[DEBUG INFO LIBERO_RANK.generate_tasks]： task {i:03d} [{category}]: {language}")
 
         self.n_tasks = len(self.tasks)
 
     # ------------------------------------------------------------------
-    # Overrides: BDDL path and init states differ from standard benchmarks
+    # Overrides
     # ------------------------------------------------------------------
 
     def get_task_bddl_file_path(self, i):
-        # BDDL was written to a tempfile; return its full path directly.
         return self.tasks[i].bddl_path
 
     def get_task_init_states(self, i):
-        # No pre-saved init states; the environment is reset from scratch.
         return None

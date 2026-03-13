@@ -1,4 +1,4 @@
-from libero.libero.benchmark.depth_order_scripts.bddl_generator import generate_random_depth_order_task_bddl
+from libero.libero.benchmark.depth_order_scripts.bddl_generator import generate_random_rank_task_bddl
 from random import randint
 import numpy as np
 
@@ -96,24 +96,24 @@ INSTRUCTION_TEMPLATES = {
     # "Pick the object and place in the 6th bowl furtherest from it.",
     # "Pick the object and place in the 7th bowl furtherest from it.",
     # # pick by feature: many different object + 1 bowl
-    # "Pick the largest object and place in the bowl.",
-    # "Pick the smallest object and place in the bowl.",
-    # "Pick the 1st largest object and place in the bowl.",
-    # "Pick the 2nd largest object and place in the bowl.",
-    # "Pick the 3rd largest object and place in the bowl.",
-    # "Pick the 4th largest object and place in the bowl.",
-    # "Pick the 5th largest object and place in the bowl.",
+    "Pick the largest object and place in the bowl.",
+    "Pick the smallest object and place in the bowl.",
+    "Pick the 1st largest object and place in the bowl.",
+    "Pick the 2nd largest object and place in the bowl.",
+    "Pick the 3rd largest object and place in the bowl.",
+    "Pick the 4th largest object and place in the bowl.",
+    "Pick the 5th largest object and place in the bowl.",
     # "Pick the 6th largest object and place in the bowl.",
     # "Pick the 7th largest object and place in the bowl.",
-    # "Pick the 1st smallest object and place in the bowl.",
-    # "Pick the 2nd smallest object and place in the bowl.",
-    # "Pick the 3rd smallest object and place in the bowl.",
-    # "Pick the 4th smallest object and place in the bowl.",
-    # "Pick the 5th smallest object and place in the bowl.",
+    "Pick the 1st smallest object and place in the bowl.",
+    "Pick the 2nd smallest object and place in the bowl.",
+    "Pick the 3rd smallest object and place in the bowl.",
+    "Pick the 4th smallest object and place in the bowl.",
+    "Pick the 5th smallest object and place in the bowl.",
     # "Pick the 6th smallest object and place in the bowl.",
     # "Pick the 7th smallest object and place in the bowl.",
     # middle pick: 3 different object with col restriction + one bowl
-    "Pick the object in the middle and place in the bowl."
+    # "Pick the object in the middle and place in the bowl."
 }
 
 
@@ -126,7 +126,7 @@ def prep_for_display(img):
 if __name__ == "__main__":
 
     for cur_instruction in INSTRUCTION_TEMPLATES:
-        result = generate_random_depth_order_task_bddl(language=cur_instruction, num_objects=10, save_bddl=True)
+        result = generate_random_rank_task_bddl(language=cur_instruction, num_objects=10, save_bddl=True)
 
         seed = randint(0, 1000)
 
@@ -140,6 +140,7 @@ if __name__ == "__main__":
         # ── get ACTUAL target position from obs, not region center ────────────────
         # target_key = result["target_place"]  # e.g. "cookies_1"
         target_key = result["target_object"]  # e.g. "cookies_1"
+
         target_pos  = obs[f"{target_key}_pos"]  # actual sim position (x, y, z)
         target_quat = obs[f"{target_key}_quat"]
 
@@ -149,6 +150,13 @@ if __name__ == "__main__":
             # Use actual target_pos from obs — update each step in case of physics drift
             target_pos = obs[f"{target_key}_pos"]
             delta_pos  = target_pos[:2] - robot_eef_pos[:2]# keep height constant
+
+            # print(sum(delta_pos))
+
+            # if sum(delta_pos) < 0.02:
+            #     # move to the target bowl after reaching the target pick
+            #     target_key = result["target_place"]
+                
 
             action_7dim = np.zeros(7)
             action_7dim[:2] = np.clip(delta_pos * 10, -1, 1)

@@ -8,8 +8,8 @@ from typing import Optional
 
 
 
-from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE, INSTRUCTION_TEMPLATES
-from .env_generate_utils import allocate_obj_to_region, parse_cell_region
+from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE, INSTRUCTION_TEMPLATES, OBJECT_SIZE_RANK
+from .env_generate_utils import allocate_obj_to_region, parse_cell_region, parse_ranking_index
 
 
 import os
@@ -125,6 +125,7 @@ def generate_middle_pick_task_bddl(
     seed: Optional[int] = None,
     grid_size: Optional[int] = 20,  
     output_path: Optional[str] = None,
+    bowl_type: str = BOWL_TYPE,
     extra_regions: Optional[dict] = None,
     save_bddl:bool = False
 ) -> dict:
@@ -156,7 +157,8 @@ def generate_middle_pick_task_bddl(
                                                 has_bowl=True,
                                                 grid_size=grid_size,
                                                 seed=seed,
-                                                need_middle_object=True # need a middle object
+                                                need_middle_object=True, # need a middle object
+                                                bowl_type=bowl_type
                                                 )
     
     # need to sort the objects by their x-coordinate (row index) to determine the target object based on the language instruction
@@ -180,9 +182,358 @@ def generate_middle_pick_task_bddl(
                          output_path=output_path)
 
 
+def generate_egocentric_pick_task_bddl(
+    language: str,
+    seed: Optional[int] = None,
+    grid_size: Optional[int] = 20,
+    obj_num: int = 10,
+    bowl_type: str = BOWL_TYPE,
+    object_pool: Optional[list] = OBJECT_POOL,
+    output_path: Optional[str] = None,
+    extra_regions: Optional[dict] = None,
+    save_bddl:bool = False
+) -> dict:
+    
+    # the number of objects are between 3, 5, 7
+    rng = np.random.RandomState(seed)  # works for both None and int seeds
+
+    
+    # objects to be passed to allocate regions
+    obj_list = []
+
+    # pick a specifc object type
+    object_types = rng.choice(object_pool)
+
+
+    # After object_types is determined, substitute into language if it's generic
+    resolved_language = language.replace("object", object_types).replace("item", object_types)
+
+
+    obj_num = min(len(object_pool), obj_num)
+
+     
+    for index in range(obj_num):
+        obj_list.append(f"{object_types}_{index}")
     
 
+    # allocate the object to each region
+    inst2region, regions = allocate_obj_to_region(obj_list,
+                                                has_bowl=True,
+                                                grid_size=grid_size,
+                                                seed=seed,
+                                                need_middle_object=False, 
+                                                bowl_type=bowl_type
+                                                )
+    
+    # need to sort the objects by their x-coordinate (row index) to determine the target object based on the language instruction
+    # sort inst2region by row index (x-coordinate) in descending order (largest x = closest to camera)
+    sorted_objects = sorted(inst2region.keys(), key=lambda obj: parse_cell_region(inst2region[obj])[0], reverse=True)
 
+    # get the middle object without the bowl
+    sorted_objects = [obj for obj in sorted_objects if bowl_type not in obj]
+
+    # get the target rank
+    rank = parse_ranking_index(resolved_language, obj_num)
+
+    # print(f"[DEBUG INFO generate_egocentric_pick_task_bddl] instruction {resolved_language}: target rank is {rank}")
+
+    # print(f"[DEBUG INFO generate_egocentric_pick_task_bddl] sorted_objects {sorted_objects}")
+    # get the target object
+    target_object = sorted_objects[rank]
+
+
+    # generate bddl based on input
+    return generate_bddl(resolved_language=resolved_language, 
+                         inst2region=inst2region, 
+                         regions=regions, 
+                         all_objects=obj_list, 
+                         target_object=target_object, 
+                         save_bddl=save_bddl, 
+                         output_path=output_path)
+
+
+def generate_egocentric_place_task_bddl(
+    language: str,
+    seed: Optional[int] = None,
+    grid_size: Optional[int] = 20,
+    obj_num: int = 10,
+    object_pool: Optional[list] = OBJECT_POOL,
+    bowl_type: str = BOWL_TYPE,
+    output_path: Optional[str] = None,
+    extra_regions: Optional[dict] = None,
+    save_bddl:bool = False
+) -> dict:
+    
+    # the number of objects are between 3, 5, 7
+    rng = np.random.RandomState(seed)  # works for both None and int seeds
+
+
+    # cannot have too many bowls
+    obj_num = min(OBJECT_NUM_LIMITS[bowl_type], obj_num)
+
+    
+    # objects to be passed to allocate regions
+    obj_list = []
+
+    # pick a specifc object type
+    object_type = rng.choice(object_pool)
+
+    target_pick_obj = f"{object_type}_0"    
+    
+    # add a single object to the list
+    obj_list.append(target_pick_obj)
+
+    # After object_types is determined, substitute into language if it's generic
+    resolved_language = language.replace("object", object_type).replace("item", object_type)
+     
+    for index in range(obj_num):
+        obj_list.append(f"{bowl_type}_{index}")
+    
+    # allocate the object to each region
+    inst2region, regions = allocate_obj_to_region(obj_list,
+                                                has_bowl=False, # for placing tasks we already add in many bowls
+                                                grid_size=grid_size,
+                                                seed=seed,
+                                                need_middle_object=False, # need a middle object
+                                                bowl_type=bowl_type
+                                                )
+    
+    # need to sort the objects by their x-coordinate (row index) to determine the target object based on the language instruction
+    # sort inst2region by row index (x-coordinate) in descending order (largest x = closest to camera)
+    sorted_objects = sorted(inst2region.keys(), key=lambda obj: parse_cell_region(inst2region[obj])[0], reverse=True)
+
+    # sort the bowls
+    sorted_objects = [obj for obj in sorted_objects if BOWL_TYPE in obj]
+
+    # get the target rank
+    rank = parse_ranking_index(resolved_language, obj_num)
+
+    # print(f"[DEBUG INFO generate_egocentric_pick_task_bddl] instruction {language}: target rank is {rank}")
+
+    # get the target object
+    target_bowl_instance = sorted_objects[rank]
+
+
+    # generate bddl based on input
+    return generate_bddl(resolved_language=resolved_language, 
+                         inst2region=inst2region, 
+                         regions=regions, 
+                         all_objects=obj_list, 
+                         target_object=f"{object_type}_0", 
+                         bowl_instance=target_bowl_instance, # specific the bowl to be placeed
+                         save_bddl=save_bddl, 
+                         output_path=output_path)
+
+
+def generate_allocentric_pick_task_bddl(
+    language: str,
+    seed: Optional[int] = None,
+    grid_size: Optional[int] = 20,
+    obj_num: int = 10,
+    bowl_type: str = BOWL_TYPE,
+    object_pool: Optional[list] = OBJECT_POOL,
+    output_path: Optional[str] = None,
+    extra_regions: Optional[dict] = None,
+    save_bddl:bool = False
+) -> dict:
+    
+    # the number of objects are between 3, 5, 7
+    rng = np.random.RandomState(seed)  # works for both None and int seeds
+
+    
+    # objects to be passed to allocate regions
+    obj_list = []
+
+    # pick a specifc object type
+    object_types = rng.choice(object_pool)
+
+
+    # After object_types is determined, substitute into language if it's generic
+    resolved_language = language.replace("object", object_types).replace("item", object_types)
+
+     
+    for index in range(obj_num):
+        obj_list.append(f"{object_types}_{index}")
+    
+
+    # allocate the object to each region
+    inst2region, regions, distance_map = allocate_obj_to_region(obj_list,
+                                                has_bowl=True,
+                                                grid_size=grid_size,
+                                                seed=seed,
+                                                need_middle_object=False, 
+                                                bowl_type=bowl_type,
+                                                need_allocation_dist=True,
+                                                allocated_object_type=f"{bowl_type}_0", # need to make sure all objects have different distance to bowl
+                                                )
+    
+    # need to sort the objects by their x-coordinate (row index) to determine the target object based on the language instruction
+    # sort inst2region by row index (x-coordinate) in descending order (largest x = closest to camera)
+    sorted_objects = sorted([obj for obj in inst2region if bowl_type not in obj], key=lambda obj: distance_map[obj])
+
+
+
+    # print(f"[DEBUG INFO generate_allocentric_pick_task_bddl]: sorted object distances obtained:")
+    # for cur_obj in sorted_objects:
+    #     print(f"[DEBUG INFO generate_allocentric_pick_task_bddl]: {cur_obj} distances {distance_map[cur_obj]}:")
+
+    # get the middle object without the bowl
+    sorted_objects = [obj for obj in sorted_objects if bowl_type not in obj]
+
+    # get the target rank
+    rank = parse_ranking_index(resolved_language, obj_num)
+
+
+
+    # get the target object
+    target_object = sorted_objects[rank]
+
+    # print(f"[DEBUG INFO generate_allocentric_pick_task_bddl] instruction {language}: target rank is {rank}")
+    # print(f"[DEBUG INFO generate_allocentric_pick_task_bddl] target_object {target_object}: distance is {distance_map[target_object]}")
+
+
+    # generate bddl based on input
+    return generate_bddl(resolved_language=resolved_language, 
+                         inst2region=inst2region, 
+                         regions=regions, 
+                         all_objects=obj_list, 
+                         target_object=target_object, 
+                         save_bddl=save_bddl, 
+                         output_path=output_path)
+
+
+def generate_allocentric_place_task_bddl(
+    language: str,
+    seed: Optional[int] = None,
+    grid_size: Optional[int] = 20,
+    obj_num: int = 10,
+    bowl_type: str = BOWL_TYPE,
+    object_pool: Optional[list] = OBJECT_POOL,
+    output_path: Optional[str] = None,
+    extra_regions: Optional[dict] = None,
+    save_bddl: bool = False
+) -> dict:
+
+    rng = np.random.RandomState(seed)
+
+    # cannot have too many bowls
+    obj_num = min(OBJECT_NUM_LIMITS[bowl_type], obj_num)
+
+    # pick a specific non-bowl object type
+    object_type = rng.choice(object_pool)
+    target_pick_obj = f"{object_type}_0"
+
+    # After object_type is determined, substitute into language if it's generic
+    resolved_language = language.replace("object", object_type).replace("item", object_type)
+
+    # one pick object + multiple bowls
+    obj_list = [target_pick_obj]
+    for index in range(obj_num):
+        obj_list.append(f"{bowl_type}_{index}")
+
+    # allocate — sort bowls by distance to the pick object, so all distances must be unique
+    inst2region, regions, distance_map = allocate_obj_to_region(
+        obj_list,
+        has_bowl=False,         # bowls already added manually above
+        grid_size=grid_size,
+        seed=seed,
+        need_middle_object=False,
+        bowl_type=bowl_type,
+        need_allocation_dist=True,
+        allocated_object_type=target_pick_obj,  # measure distances relative to the pick object
+    )
+
+    # sort bowls ascending by distance to pick object (index 0 = closest, index -1 = furthest)
+    sorted_bowls = sorted(
+        [obj for obj in inst2region if bowl_type in obj],
+        key=lambda obj: distance_map[obj]
+    )
+
+    # print(f"[DEBUG INFO generate_allocentric_place_task_bddl]: bowl distances to '{target_pick_obj}':")
+    # for bowl in sorted_bowls:
+    #     print(f"[DEBUG INFO generate_allocentric_place_task_bddl]:   {bowl} → {distance_map[bowl]}")
+
+    # get target rank from language
+    rank = parse_ranking_index(resolved_language, len(sorted_bowls))
+    target_bowl_instance = sorted_bowls[rank]
+
+    # print(f"[DEBUG INFO generate_allocentric_place_task_bddl] instruction '{language}': target rank is {rank}")
+    # print(f"[DEBUG INFO generate_allocentric_place_task_bddl] target bowl '{target_bowl_instance}': distance is {distance_map[target_bowl_instance]}")
+
+    return generate_bddl(
+        resolved_language=resolved_language,
+        inst2region=inst2region,
+        regions=regions,
+        all_objects=obj_list,
+        target_object=target_pick_obj,
+        bowl_instance=target_bowl_instance,  # place in the rank-th bowl
+        save_bddl=save_bddl,
+        output_path=output_path,
+    )
+
+
+def generate_pick_by_feature_task_bddl(
+    language: str,
+    seed: Optional[int] = None,
+    grid_size: Optional[int] = 20,
+    obj_num: int = 5,               # now = number of *types* to compare
+    bowl_type: str = BOWL_TYPE,
+    object_pool: Optional[list] = OBJECT_SIZE_RANK,
+    output_path: Optional[str] = None,
+    extra_regions: Optional[dict] = None,
+    save_bddl: bool = False
+) -> dict:
+    # the number of objects are between 3, 5, 7
+    rng = np.random.RandomState(seed)  # works for both None and int seeds
+
+    
+    # objects to be passed to allocate regions
+    obj_list = []
+
+    obj_num = min(len(object_pool), obj_num)
+
+    # random pick unqiue objects, add _0 suffix to form valid label
+    obj_list = [ f"{i}_0" for i in rng.choice(object_pool, size=obj_num, replace=False)]
+    
+
+    # allocate the object to each region
+    inst2region, regions = allocate_obj_to_region(obj_list,
+                                                has_bowl=True,
+                                                grid_size=grid_size,
+                                                seed=seed,
+                                                need_middle_object=False, 
+                                                bowl_type=bowl_type
+                                                )
+    
+    # need to sort the objects by their x-coordinate (row index) to determine the target object based on the language instruction
+    # sort inst2region by row index (x-coordinate) in descending order (largest x = closest to camera)
+    sorted_objects = sorted(inst2region.keys(), key=lambda obj: parse_cell_region(inst2region[obj])[0], reverse=True)
+
+    # get the middle object without the bowl
+    # sorted_objects = [obj for obj in sorted_objects if bowl_type not in obj]
+
+    sorted_objects = sorted(
+        [inst for inst in inst2region if bowl_type not in inst],
+        key=lambda inst: OBJECT_SIZE_RANK.index(inst.rsplit("_", 1)[0])
+    )
+
+    # get the target rank
+    rank = parse_ranking_index(language, obj_num)
+
+    # print(f"[DEBUG INFO generate_pick_by_feature_task_bddl] instruction {language}: target rank is {rank}")
+
+    # get the target object
+    target_object = sorted_objects[rank]
+
+
+    # generate bddl based on input
+    return generate_bddl(resolved_language=language, 
+                         inst2region=inst2region, 
+                         regions=regions, 
+                         all_objects=obj_list, 
+                         target_object=target_object, 
+                         save_bddl=save_bddl, 
+                         output_path=output_path)
     
 
 def generate_random_rank_task_bddl(
@@ -211,29 +562,64 @@ def generate_random_rank_task_bddl(
 
     # ── feature pick (largest / smallest) ────────────────────────────────────
     if re.search(r"\b(largest|smallest)\b", lang):
-        print(f"[DEBUG INFO]：{language}, feature pick task is not implemented")
-        return
+        print(f"[DEBUG INFO]：{language}, feature pick task is implemented")
+        return generate_pick_by_feature_task_bddl(language=language,
+                                                  seed=seed,
+                                                  grid_size=grid_size,
+                                                  obj_num=num_objects,
+                                                  output_path=output_path,
+                                                  extra_regions=extra_regions,
+                                                #   object_pool=object_pool, only use predefined objeck with rank
+                                                  save_bddl=save_bddl)
 
 
     # ── allocentric place: "bowl closest/furthest to it" ─────────────────────
     if re.search(r"bowl.*(closest|furthest|furtherest|farthest).*\bit\b", lang):
-        print(f"[DEBUG INFO]：{language}, allocentric place task is not implemented")
-        return
+        print(f"[DEBUG INFO]：{language}, allocentric place task is implemented")
+        return generate_allocentric_place_task_bddl(language=language,
+                                            seed=seed,
+                                            grid_size=grid_size,
+                                            obj_num=num_objects,
+                                            output_path=output_path,
+                                            extra_regions=extra_regions,
+                                            object_pool=object_pool,
+                                            save_bddl=save_bddl)
 
     # ── allocentric pick: "object closest/furthest to the bowl" ──────────────
     if re.search(r"pick the (?:\d+(?:st|nd|rd|th)?\s+)?object\s+(?:closest|furthest|furtherest|farthest)\s+to the bowl", lang):
-        print(f"[DEBUG INFO]：{language}, allocentric pick task is not implemented")
-        return
+        print(f"[DEBUG INFO]：{language}, allocentric pick task is implemented")
+        return generate_allocentric_pick_task_bddl(language=language,
+                                                  seed=seed,
+                                                  grid_size=grid_size,
+                                                  obj_num=num_objects,
+                                                  output_path=output_path,
+                                                  extra_regions=extra_regions,
+                                                  object_pool=object_pool,
+                                                  save_bddl=save_bddl)
 
     # ── egocentric place: "place in the [rank] bowl" ─────────────────────────
     if re.search(r"place in the (?:\d+(?:st|nd|rd|th)?\s+)?(?:closest|furthest|furtherest|farthest)\s+bowl\s*\.", lang):
-        print(f"[DEBUG INFO]：{language}, egocentric place task is not implemented")
-        return
+        print(f"[DEBUG INFO]：{language}, egocentric place task implemented")
+        return generate_egocentric_place_task_bddl(language=language,
+                                                  seed=seed,
+                                                  grid_size=grid_size,
+                                                  obj_num=num_objects,
+                                                  output_path=output_path,
+                                                  extra_regions=extra_regions,
+                                                  object_pool=object_pool,
+                                                  save_bddl=save_bddl)
 
      # ── egocentric pick: "pick the [rank] object" ────────────────────────────
     if re.search(r"pick the.*(closest|furthest|furtherest|farthest|\d+\w*)\s+object", lang):
-        print(f"[DEBUG INFO]：{language}, egocentric pick task is not implemented")
-        return
+        print(f"[DEBUG INFO]：{language}, egocentric pick task generated")
+        return generate_egocentric_pick_task_bddl(language=language,
+                                                  seed=seed,
+                                                  grid_size=grid_size,
+                                                  obj_num=num_objects,
+                                                  output_path=output_path,
+                                                  extra_regions=extra_regions,
+                                                  object_pool=object_pool,
+                                                  save_bddl=save_bddl)
 
 
 

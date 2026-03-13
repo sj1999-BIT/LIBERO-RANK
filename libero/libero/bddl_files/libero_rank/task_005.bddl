@@ -1,6 +1,6 @@
     (define (problem LIBERO_TABLETOP_MANIPULATION)
       (:domain robosuite)
-      (:language Pick the object in the middle and place in the bowl.)
+      (:language Pick the largest object and place in the bowl.)
       (:regions
         (cell_0_0
     (:target main_table)
@@ -2807,22 +2807,26 @@
         main_table - table
       )
       (:objects
-        milk_0 - milk
-tomato_sauce_0 - tomato_sauce
-ketchup_0 - ketchup
+        alphabet_soup_0 - alphabet_soup
+butter_0 - butter
+moka_pot_0 - moka_pot
+orange_juice_0 - orange_juice
+milk_0 - milk
 akita_black_bowl_0 - akita_black_bowl
       )
       (:obj_of_interest
-        milk_0
+        moka_pot_0
         akita_black_bowl_0
       )
       (:init
-        (On milk_0 main_table_cell_4_8)
-(On tomato_sauce_0 main_table_cell_14_1)
-(On ketchup_0 main_table_cell_1_19)
-(On akita_black_bowl_0 main_table_cell_3_12)
+        (On alphabet_soup_0 main_table_cell_14_18)
+(On butter_0 main_table_cell_19_17)
+(On moka_pot_0 main_table_cell_9_7)
+(On orange_juice_0 main_table_cell_4_6)
+(On milk_0 main_table_cell_16_6)
+(On akita_black_bowl_0 main_table_cell_17_1)
       )
       (:goal
-        (And (On milk_0 akita_black_bowl_0))
+        (And (On moka_pot_0 akita_black_bowl_0))
       )
     )
