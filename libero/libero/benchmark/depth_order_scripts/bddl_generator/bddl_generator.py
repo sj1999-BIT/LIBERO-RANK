@@ -5,15 +5,16 @@ Each bddl generator generate for a specific type of subtasks.
 
 from abc import ABC, abstractmethod
 from typing import Optional
-from random import random
 
 
-from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE
+
+from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE, INSTRUCTION_TEMPLATES
 from .env_generate_utils import allocate_obj_to_region, parse_cell_region
 
 
 import os
 import re
+import random 
 import tempfile
 import textwrap
 import numpy as np
@@ -23,96 +24,6 @@ import numpy as np
 If input language is none, a random instruction is picked
 """
 
-# 81 tasks in total
-INSTRUCTION_TEMPLATES = {
-    # egocentric pick tasks: many same object + 1 bowl
-    "Pick the closest object and place in the bowl.",
-    "Pick the furtherest object and place in the bowl.",
-    "Pick the 1st closest object and place in the bowl.",
-    "Pick the 2nd closest object and place in the bowl.",
-    "Pick the 3rd closest object and place in the bowl.",
-    "Pick the 4th closest object and place in the bowl.",
-    "Pick the 5th closest object and place in the bowl.",
-    "Pick the 6th closest object and place in the bowl.",
-    "Pick the 7th closest object and place in the bowl.",
-    "Pick the 1st furtherest object and place in the bowl.",
-    "Pick the 2nd furtherest object and place in the bowl.",
-    "Pick the 3rd furtherest object and place in the bowl.",
-    "Pick the 4th furtherest object and place in the bowl.",
-    "Pick the 5th furtherest object and place in the bowl.",
-    "Pick the 6th furtherest object and place in the bowl.",
-    "Pick the 7th furtherest object and place in the bowl.",
-    # egocentric place tasks: 1 object + many bowls
-    "Pick the object and place in the closest bowl.",
-    "Pick the object and place in the furtherest bowl.",
-    "Pick the object and place in the 1st closest bowl.",
-    "Pick the object and place in the 2nd closest bowl.",
-    "Pick the object and place in the 3rd closest bowl.",
-    "Pick the object and place in the 4th closest bowl.",
-    "Pick the object and place in the 5th closest bowl.",
-    "Pick the object and place in the 6th closest bowl.",
-    "Pick the object and place in the 7th closest bowl.",
-    "Pick the object and place in the 1st furtherest bowl.",
-    "Pick the object and place in the 2nd furtherest bowl.",
-    "Pick the object and place in the 3rd furtherest bowl.",
-    "Pick the object and place in the 4th furtherest bowl.",
-    "Pick the object and place in the 5th furtherest bowl.",
-    "Pick the object and place in the 6th furtherest bowl.",
-    "Pick the object and place in the 7th furtherest bowl.",
-    # allocentric pick: many same object + 1 bowl
-    "Pick the object closest to the bowl and place in the bowl.",
-    "Pick the object furtherest to the bowl and place in the bowl.",
-    "Pick the 1st object closest to the bowl and place in the bowl.",
-    "Pick the 2nd object closest to the bowl and place in the bowl.",
-    "Pick the 3rd object closest to the bowl and place in the bowl.",
-    "Pick the 4th object closest to the bowl and place in the bowl.",
-    "Pick the 5th object closest to the bowl and place in the bowl.",
-    "Pick the 6th object closest to the bowl and place in the bowl.",
-    "Pick the 7th object closest to the bowl and place in the bowl.",
-    "Pick the 1st object furtherest to the bowl and place in the bowl.",
-    "Pick the 2nd object furtherest to the bowl and place in the bowl.",
-    "Pick the 3rd object furtherest to the bowl and place in the bowl.",
-    "Pick the 4th object furtherest to the bowl and place in the bowl.",
-    "Pick the 5th object furtherest to the bowl and place in the bowl.",
-    "Pick the 6th object furtherest to the bowl and place in the bowl.",
-    "Pick the 7th object furtherest to the bowl and place in the bowl.",
-    # allocentric place: 1 object + many bowls
-    "Pick the object and place in the bowl closest to it.",
-    "Pick the object and place in the bowl furtherest from it.",
-    "Pick the object and place in the 1st bowl closest to it.",
-    "Pick the object and place in the 2nd bowl closest to it.",
-    "Pick the object and place in the 3rd bowl closest to it.",
-    "Pick the object and place in the 4th bowl closest to it.",
-    "Pick the object and place in the 5th bowl closest to it.",
-    "Pick the object and place in the 6th bowl closest to it.",
-    "Pick the object and place in the 7th bowl closest to it.",
-    "Pick the object and place in the 1st bowl furtherest from it.",
-    "Pick the object and place in the 2nd bowl furtherest from it.",
-    "Pick the object and place in the 3rd bowl furtherest from it.",
-    "Pick the object and place in the 4th bowl furtherest from it.",
-    "Pick the object and place in the 5th bowl furtherest from it.",
-    "Pick the object and place in the 6th bowl furtherest from it.",
-    "Pick the object and place in the 7th bowl furtherest from it.",
-    # pick by feature: many different object + 1 bowl
-    "Pick the largest object and place in the bowl.",
-    "Pick the smallest object and place in the bowl.",
-    "Pick the 1st largest object and place in the bowl.",
-    "Pick the 2nd largest object and place in the bowl.",
-    "Pick the 3rd largest object and place in the bowl.",
-    "Pick the 4th largest object and place in the bowl.",
-    "Pick the 5th largest object and place in the bowl.",
-    "Pick the 6th largest object and place in the bowl.",
-    "Pick the 7th largest object and place in the bowl.",
-    "Pick the 1st smallest object and place in the bowl.",
-    "Pick the 2nd smallest object and place in the bowl.",
-    "Pick the 3rd smallest object and place in the bowl.",
-    "Pick the 4th smallest object and place in the bowl.",
-    "Pick the 5th smallest object and place in the bowl.",
-    "Pick the 6th smallest object and place in the bowl.",
-    "Pick the 7th smallest object and place in the bowl.",
-    # middle pick: 3 different object with col restriction + one bowl
-    "Pick the object in the middle and place in the bowl."
-}
 
 def generate_bddl(
         resolved_language: str,
@@ -274,12 +185,12 @@ def generate_middle_pick_task_bddl(
 
     
 
-def generate_random_depth_order_task_bddl(
-    language: str = None,
+def generate_random_rank_task_bddl(
+    language: str = random.choice(INSTRUCTION_TEMPLATES),
     seed: Optional[int] = None,
     num_objects: int = 10,
     grid_size: Optional[int] = 20,  
-    object_pool: Optional[list] = None,
+    object_pool: Optional[list] = OBJECT_POOL,
     bowl_type: str = BOWL_TYPE,
     object_types: str = None,
     output_path: Optional[str] = None,
@@ -287,10 +198,6 @@ def generate_random_depth_order_task_bddl(
     save_bddl:bool = False
 ) -> dict:
     
-
-    if language is None:
-        language = random.choice(INSTRUCTION_TEMPLATES)
-
     """
     Parse the instruction to determine what type of bddl to be generated
     """

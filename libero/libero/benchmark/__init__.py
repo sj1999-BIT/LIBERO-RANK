@@ -320,20 +320,15 @@ class LIBERO_100(Benchmark):
 # ══════════════════════════════════════════════════════════════════════════════
 
 from typing import List, Optional
-from .generate_bddl import generate_random_bddl, OBJECT_POOL, BOWL_TYPE
+# from .generate_bddl import generate_rndom_bddl, OBJECT_POOL, BOWL_TYPE, 
+
+from .depth_order_scripts.bddl_generator import generate_random_rank_task_bddl, INSTRUCTION_TEMPLATES, OBJECT_POOL, BOWL_TYPE
 
 # All object types that can appear as pick targets (everything except the bowl).
 NON_BOWL_POOL = [obj for obj in OBJECT_POOL if obj != BOWL_TYPE]
 
-# just for testing, future will improve it
-DEPTH_ORDER_LANGUAGES = [
-    "Place the object closest to the camera in the bowl.",
-    "Place the object furtherest to the camera in the bowl.",
-    "Place the object 2nd closest to the camera in the bowl.",
-    "Place the object 3rd closest to the camera in the bowl.",
-]
 
-class DepthOrderTask:
+class DepthRankTask:
     """
     A Task-like object for a runtime-generated depth-order task.
 
@@ -341,20 +336,19 @@ class DepthOrderTask:
     all six fields up front and the instance is immutable.  This plain class
     exposes the same attribute interface so it works everywhere Task does.
     """
-    def __init__(self, name, language, bddl_path, target_object, target_region_center):
+    def __init__(self, name, language, bddl_path, target_object):
         self.name = name
         self.language = language
-        self.problem = "LIBERO_DEPTH_ORDER"
-        self.problem_folder = "libero_depth_order"
+        self.problem = "LIBERO_RANK"
+        self.problem_folder = "libero_rank"
         self.bddl_file = os.path.basename(bddl_path)
         self.bddl_path = bddl_path          # full path (temp file)
         self.init_states_file = None        # no pre-saved init states
         self.target_object = target_object
-        self.target_region_center = target_region_center
 
 
 @register_benchmark
-class LIBERO_DEPTH_ORDER(Benchmark):
+class LIBERO_RANK(Benchmark):
     """
     A benchmark suite where tasks are generated at runtime using
     relational depth-order predicates (closest, furthest, 2nd closest, …).
@@ -371,17 +365,22 @@ class LIBERO_DEPTH_ORDER(Benchmark):
         object_types: Optional[List[str]] = None,
     ):
         super().__init__(task_order_index=task_order_index)
-        self.name = "libero_depth_order"
+        self.name = "libero_rank"
         self.num_objects = num_objects
         self.grid_size = grid_size
         self.base_seed = seed if seed is not None else random.randint(0, 10_000)
-        self.languages = languages or DEPTH_ORDER_LANGUAGES
+        self.languages = languages or INSTRUCTION_TEMPLATES
         self.object_types = object_types or NON_BOWL_POOL
 
         # Temporary directory to hold generated BDDL files for this session
-        self._tmpdir = tempfile.mkdtemp(prefix="libero_depth_order_")
+        self.dir = self._tmpdir = os.path.join(
+            get_libero_path("bddl_files"), "libero_rank"
+        )
 
-        self.tasks: List[DepthOrderTask] = []
+        os.makedirs(self.dir, exist_ok=True)
+        
+
+        self.tasks: List[DepthRankTask] = []
         self.n_tasks = 0
 
         self.generate_tasks(num_tasks)
@@ -405,7 +404,7 @@ class LIBERO_DEPTH_ORDER(Benchmark):
             object_type = self.object_types[i % len(self.object_types)]
             output_path = os.path.join(self._tmpdir, f"task_{i:03d}.bddl")
 
-            result = generate_random_bddl(
+            result = generate_random_rank_task_bddl(
                 language=language,
                 seed=seed,
                 num_objects=self.num_objects,
@@ -415,12 +414,11 @@ class LIBERO_DEPTH_ORDER(Benchmark):
                 save_bddl=True,
             )
 
-            task = DepthOrderTask(
-                name=f"depth_order_task_{i:03d}",
+            task = DepthRankTask(
+                name=f"depth_rank_task_{i:03d}",
                 language=language,
                 bddl_path=result["bddl_path"],
                 target_object=result["target_object"],
-                target_region_center=result["target_region_center"],
             )
             self.tasks.append(task)
 

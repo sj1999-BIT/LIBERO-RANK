@@ -1,0 +1,2832 @@
+    (define (problem LIBERO_TABLETOP_MANIPULATION)
+      (:domain robosuite)
+      (:language Pick the object in the middle and place in the bowl.)
+      (:regions
+        (cell_0_0
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.2500 -0.1800 -0.2250)
+      )
+    )
+)
+(cell_0_1
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.2250 -0.1800 -0.2000)
+      )
+    )
+)
+(cell_0_2
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.2000 -0.1800 -0.1750)
+      )
+    )
+)
+(cell_0_3
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.1750 -0.1800 -0.1500)
+      )
+    )
+)
+(cell_0_4
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.1500 -0.1800 -0.1250)
+      )
+    )
+)
+(cell_0_5
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.1250 -0.1800 -0.1000)
+      )
+    )
+)
+(cell_0_6
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.1000 -0.1800 -0.0750)
+      )
+    )
+)
+(cell_0_7
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.0750 -0.1800 -0.0500)
+      )
+    )
+)
+(cell_0_8
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.0500 -0.1800 -0.0250)
+      )
+    )
+)
+(cell_0_9
+    (:target main_table)
+    (:ranges (
+        (-0.2000 -0.0250 -0.1800 0.0000)
+      )
+    )
+)
+(cell_0_10
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.0000 -0.1800 0.0250)
+      )
+    )
+)
+(cell_0_11
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.0250 -0.1800 0.0500)
+      )
+    )
+)
+(cell_0_12
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.0500 -0.1800 0.0750)
+      )
+    )
+)
+(cell_0_13
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.0750 -0.1800 0.1000)
+      )
+    )
+)
+(cell_0_14
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.1000 -0.1800 0.1250)
+      )
+    )
+)
+(cell_0_15
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.1250 -0.1800 0.1500)
+      )
+    )
+)
+(cell_0_16
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.1500 -0.1800 0.1750)
+      )
+    )
+)
+(cell_0_17
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.1750 -0.1800 0.2000)
+      )
+    )
+)
+(cell_0_18
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.2000 -0.1800 0.2250)
+      )
+    )
+)
+(cell_0_19
+    (:target main_table)
+    (:ranges (
+        (-0.2000 0.2250 -0.1800 0.2500)
+      )
+    )
+)
+(cell_1_0
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.2500 -0.1600 -0.2250)
+      )
+    )
+)
+(cell_1_1
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.2250 -0.1600 -0.2000)
+      )
+    )
+)
+(cell_1_2
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.2000 -0.1600 -0.1750)
+      )
+    )
+)
+(cell_1_3
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.1750 -0.1600 -0.1500)
+      )
+    )
+)
+(cell_1_4
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.1500 -0.1600 -0.1250)
+      )
+    )
+)
+(cell_1_5
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.1250 -0.1600 -0.1000)
+      )
+    )
+)
+(cell_1_6
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.1000 -0.1600 -0.0750)
+      )
+    )
+)
+(cell_1_7
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.0750 -0.1600 -0.0500)
+      )
+    )
+)
+(cell_1_8
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.0500 -0.1600 -0.0250)
+      )
+    )
+)
+(cell_1_9
+    (:target main_table)
+    (:ranges (
+        (-0.1800 -0.0250 -0.1600 0.0000)
+      )
+    )
+)
+(cell_1_10
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.0000 -0.1600 0.0250)
+      )
+    )
+)
+(cell_1_11
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.0250 -0.1600 0.0500)
+      )
+    )
+)
+(cell_1_12
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.0500 -0.1600 0.0750)
+      )
+    )
+)
+(cell_1_13
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.0750 -0.1600 0.1000)
+      )
+    )
+)
+(cell_1_14
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.1000 -0.1600 0.1250)
+      )
+    )
+)
+(cell_1_15
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.1250 -0.1600 0.1500)
+      )
+    )
+)
+(cell_1_16
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.1500 -0.1600 0.1750)
+      )
+    )
+)
+(cell_1_17
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.1750 -0.1600 0.2000)
+      )
+    )
+)
+(cell_1_18
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.2000 -0.1600 0.2250)
+      )
+    )
+)
+(cell_1_19
+    (:target main_table)
+    (:ranges (
+        (-0.1800 0.2250 -0.1600 0.2500)
+      )
+    )
+)
+(cell_2_0
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.2500 -0.1400 -0.2250)
+      )
+    )
+)
+(cell_2_1
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.2250 -0.1400 -0.2000)
+      )
+    )
+)
+(cell_2_2
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.2000 -0.1400 -0.1750)
+      )
+    )
+)
+(cell_2_3
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.1750 -0.1400 -0.1500)
+      )
+    )
+)
+(cell_2_4
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.1500 -0.1400 -0.1250)
+      )
+    )
+)
+(cell_2_5
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.1250 -0.1400 -0.1000)
+      )
+    )
+)
+(cell_2_6
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.1000 -0.1400 -0.0750)
+      )
+    )
+)
+(cell_2_7
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.0750 -0.1400 -0.0500)
+      )
+    )
+)
+(cell_2_8
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.0500 -0.1400 -0.0250)
+      )
+    )
+)
+(cell_2_9
+    (:target main_table)
+    (:ranges (
+        (-0.1600 -0.0250 -0.1400 0.0000)
+      )
+    )
+)
+(cell_2_10
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.0000 -0.1400 0.0250)
+      )
+    )
+)
+(cell_2_11
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.0250 -0.1400 0.0500)
+      )
+    )
+)
+(cell_2_12
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.0500 -0.1400 0.0750)
+      )
+    )
+)
+(cell_2_13
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.0750 -0.1400 0.1000)
+      )
+    )
+)
+(cell_2_14
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.1000 -0.1400 0.1250)
+      )
+    )
+)
+(cell_2_15
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.1250 -0.1400 0.1500)
+      )
+    )
+)
+(cell_2_16
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.1500 -0.1400 0.1750)
+      )
+    )
+)
+(cell_2_17
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.1750 -0.1400 0.2000)
+      )
+    )
+)
+(cell_2_18
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.2000 -0.1400 0.2250)
+      )
+    )
+)
+(cell_2_19
+    (:target main_table)
+    (:ranges (
+        (-0.1600 0.2250 -0.1400 0.2500)
+      )
+    )
+)
+(cell_3_0
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.2500 -0.1200 -0.2250)
+      )
+    )
+)
+(cell_3_1
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.2250 -0.1200 -0.2000)
+      )
+    )
+)
+(cell_3_2
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.2000 -0.1200 -0.1750)
+      )
+    )
+)
+(cell_3_3
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.1750 -0.1200 -0.1500)
+      )
+    )
+)
+(cell_3_4
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.1500 -0.1200 -0.1250)
+      )
+    )
+)
+(cell_3_5
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.1250 -0.1200 -0.1000)
+      )
+    )
+)
+(cell_3_6
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.1000 -0.1200 -0.0750)
+      )
+    )
+)
+(cell_3_7
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.0750 -0.1200 -0.0500)
+      )
+    )
+)
+(cell_3_8
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.0500 -0.1200 -0.0250)
+      )
+    )
+)
+(cell_3_9
+    (:target main_table)
+    (:ranges (
+        (-0.1400 -0.0250 -0.1200 0.0000)
+      )
+    )
+)
+(cell_3_10
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.0000 -0.1200 0.0250)
+      )
+    )
+)
+(cell_3_11
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.0250 -0.1200 0.0500)
+      )
+    )
+)
+(cell_3_12
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.0500 -0.1200 0.0750)
+      )
+    )
+)
+(cell_3_13
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.0750 -0.1200 0.1000)
+      )
+    )
+)
+(cell_3_14
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.1000 -0.1200 0.1250)
+      )
+    )
+)
+(cell_3_15
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.1250 -0.1200 0.1500)
+      )
+    )
+)
+(cell_3_16
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.1500 -0.1200 0.1750)
+      )
+    )
+)
+(cell_3_17
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.1750 -0.1200 0.2000)
+      )
+    )
+)
+(cell_3_18
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.2000 -0.1200 0.2250)
+      )
+    )
+)
+(cell_3_19
+    (:target main_table)
+    (:ranges (
+        (-0.1400 0.2250 -0.1200 0.2500)
+      )
+    )
+)
+(cell_4_0
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.2500 -0.1000 -0.2250)
+      )
+    )
+)
+(cell_4_1
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.2250 -0.1000 -0.2000)
+      )
+    )
+)
+(cell_4_2
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.2000 -0.1000 -0.1750)
+      )
+    )
+)
+(cell_4_3
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.1750 -0.1000 -0.1500)
+      )
+    )
+)
+(cell_4_4
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.1500 -0.1000 -0.1250)
+      )
+    )
+)
+(cell_4_5
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.1250 -0.1000 -0.1000)
+      )
+    )
+)
+(cell_4_6
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.1000 -0.1000 -0.0750)
+      )
+    )
+)
+(cell_4_7
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.0750 -0.1000 -0.0500)
+      )
+    )
+)
+(cell_4_8
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.0500 -0.1000 -0.0250)
+      )
+    )
+)
+(cell_4_9
+    (:target main_table)
+    (:ranges (
+        (-0.1200 -0.0250 -0.1000 0.0000)
+      )
+    )
+)
+(cell_4_10
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.0000 -0.1000 0.0250)
+      )
+    )
+)
+(cell_4_11
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.0250 -0.1000 0.0500)
+      )
+    )
+)
+(cell_4_12
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.0500 -0.1000 0.0750)
+      )
+    )
+)
+(cell_4_13
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.0750 -0.1000 0.1000)
+      )
+    )
+)
+(cell_4_14
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.1000 -0.1000 0.1250)
+      )
+    )
+)
+(cell_4_15
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.1250 -0.1000 0.1500)
+      )
+    )
+)
+(cell_4_16
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.1500 -0.1000 0.1750)
+      )
+    )
+)
+(cell_4_17
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.1750 -0.1000 0.2000)
+      )
+    )
+)
+(cell_4_18
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.2000 -0.1000 0.2250)
+      )
+    )
+)
+(cell_4_19
+    (:target main_table)
+    (:ranges (
+        (-0.1200 0.2250 -0.1000 0.2500)
+      )
+    )
+)
+(cell_5_0
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.2500 -0.0800 -0.2250)
+      )
+    )
+)
+(cell_5_1
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.2250 -0.0800 -0.2000)
+      )
+    )
+)
+(cell_5_2
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.2000 -0.0800 -0.1750)
+      )
+    )
+)
+(cell_5_3
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.1750 -0.0800 -0.1500)
+      )
+    )
+)
+(cell_5_4
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.1500 -0.0800 -0.1250)
+      )
+    )
+)
+(cell_5_5
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.1250 -0.0800 -0.1000)
+      )
+    )
+)
+(cell_5_6
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.1000 -0.0800 -0.0750)
+      )
+    )
+)
+(cell_5_7
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.0750 -0.0800 -0.0500)
+      )
+    )
+)
+(cell_5_8
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.0500 -0.0800 -0.0250)
+      )
+    )
+)
+(cell_5_9
+    (:target main_table)
+    (:ranges (
+        (-0.1000 -0.0250 -0.0800 0.0000)
+      )
+    )
+)
+(cell_5_10
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.0000 -0.0800 0.0250)
+      )
+    )
+)
+(cell_5_11
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.0250 -0.0800 0.0500)
+      )
+    )
+)
+(cell_5_12
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.0500 -0.0800 0.0750)
+      )
+    )
+)
+(cell_5_13
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.0750 -0.0800 0.1000)
+      )
+    )
+)
+(cell_5_14
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.1000 -0.0800 0.1250)
+      )
+    )
+)
+(cell_5_15
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.1250 -0.0800 0.1500)
+      )
+    )
+)
+(cell_5_16
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.1500 -0.0800 0.1750)
+      )
+    )
+)
+(cell_5_17
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.1750 -0.0800 0.2000)
+      )
+    )
+)
+(cell_5_18
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.2000 -0.0800 0.2250)
+      )
+    )
+)
+(cell_5_19
+    (:target main_table)
+    (:ranges (
+        (-0.1000 0.2250 -0.0800 0.2500)
+      )
+    )
+)
+(cell_6_0
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.2500 -0.0600 -0.2250)
+      )
+    )
+)
+(cell_6_1
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.2250 -0.0600 -0.2000)
+      )
+    )
+)
+(cell_6_2
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.2000 -0.0600 -0.1750)
+      )
+    )
+)
+(cell_6_3
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.1750 -0.0600 -0.1500)
+      )
+    )
+)
+(cell_6_4
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.1500 -0.0600 -0.1250)
+      )
+    )
+)
+(cell_6_5
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.1250 -0.0600 -0.1000)
+      )
+    )
+)
+(cell_6_6
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.1000 -0.0600 -0.0750)
+      )
+    )
+)
+(cell_6_7
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.0750 -0.0600 -0.0500)
+      )
+    )
+)
+(cell_6_8
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.0500 -0.0600 -0.0250)
+      )
+    )
+)
+(cell_6_9
+    (:target main_table)
+    (:ranges (
+        (-0.0800 -0.0250 -0.0600 0.0000)
+      )
+    )
+)
+(cell_6_10
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.0000 -0.0600 0.0250)
+      )
+    )
+)
+(cell_6_11
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.0250 -0.0600 0.0500)
+      )
+    )
+)
+(cell_6_12
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.0500 -0.0600 0.0750)
+      )
+    )
+)
+(cell_6_13
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.0750 -0.0600 0.1000)
+      )
+    )
+)
+(cell_6_14
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.1000 -0.0600 0.1250)
+      )
+    )
+)
+(cell_6_15
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.1250 -0.0600 0.1500)
+      )
+    )
+)
+(cell_6_16
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.1500 -0.0600 0.1750)
+      )
+    )
+)
+(cell_6_17
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.1750 -0.0600 0.2000)
+      )
+    )
+)
+(cell_6_18
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.2000 -0.0600 0.2250)
+      )
+    )
+)
+(cell_6_19
+    (:target main_table)
+    (:ranges (
+        (-0.0800 0.2250 -0.0600 0.2500)
+      )
+    )
+)
+(cell_7_0
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.2500 -0.0400 -0.2250)
+      )
+    )
+)
+(cell_7_1
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.2250 -0.0400 -0.2000)
+      )
+    )
+)
+(cell_7_2
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.2000 -0.0400 -0.1750)
+      )
+    )
+)
+(cell_7_3
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.1750 -0.0400 -0.1500)
+      )
+    )
+)
+(cell_7_4
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.1500 -0.0400 -0.1250)
+      )
+    )
+)
+(cell_7_5
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.1250 -0.0400 -0.1000)
+      )
+    )
+)
+(cell_7_6
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.1000 -0.0400 -0.0750)
+      )
+    )
+)
+(cell_7_7
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.0750 -0.0400 -0.0500)
+      )
+    )
+)
+(cell_7_8
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.0500 -0.0400 -0.0250)
+      )
+    )
+)
+(cell_7_9
+    (:target main_table)
+    (:ranges (
+        (-0.0600 -0.0250 -0.0400 0.0000)
+      )
+    )
+)
+(cell_7_10
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.0000 -0.0400 0.0250)
+      )
+    )
+)
+(cell_7_11
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.0250 -0.0400 0.0500)
+      )
+    )
+)
+(cell_7_12
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.0500 -0.0400 0.0750)
+      )
+    )
+)
+(cell_7_13
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.0750 -0.0400 0.1000)
+      )
+    )
+)
+(cell_7_14
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.1000 -0.0400 0.1250)
+      )
+    )
+)
+(cell_7_15
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.1250 -0.0400 0.1500)
+      )
+    )
+)
+(cell_7_16
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.1500 -0.0400 0.1750)
+      )
+    )
+)
+(cell_7_17
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.1750 -0.0400 0.2000)
+      )
+    )
+)
+(cell_7_18
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.2000 -0.0400 0.2250)
+      )
+    )
+)
+(cell_7_19
+    (:target main_table)
+    (:ranges (
+        (-0.0600 0.2250 -0.0400 0.2500)
+      )
+    )
+)
+(cell_8_0
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.2500 -0.0200 -0.2250)
+      )
+    )
+)
+(cell_8_1
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.2250 -0.0200 -0.2000)
+      )
+    )
+)
+(cell_8_2
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.2000 -0.0200 -0.1750)
+      )
+    )
+)
+(cell_8_3
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.1750 -0.0200 -0.1500)
+      )
+    )
+)
+(cell_8_4
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.1500 -0.0200 -0.1250)
+      )
+    )
+)
+(cell_8_5
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.1250 -0.0200 -0.1000)
+      )
+    )
+)
+(cell_8_6
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.1000 -0.0200 -0.0750)
+      )
+    )
+)
+(cell_8_7
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.0750 -0.0200 -0.0500)
+      )
+    )
+)
+(cell_8_8
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.0500 -0.0200 -0.0250)
+      )
+    )
+)
+(cell_8_9
+    (:target main_table)
+    (:ranges (
+        (-0.0400 -0.0250 -0.0200 0.0000)
+      )
+    )
+)
+(cell_8_10
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.0000 -0.0200 0.0250)
+      )
+    )
+)
+(cell_8_11
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.0250 -0.0200 0.0500)
+      )
+    )
+)
+(cell_8_12
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.0500 -0.0200 0.0750)
+      )
+    )
+)
+(cell_8_13
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.0750 -0.0200 0.1000)
+      )
+    )
+)
+(cell_8_14
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.1000 -0.0200 0.1250)
+      )
+    )
+)
+(cell_8_15
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.1250 -0.0200 0.1500)
+      )
+    )
+)
+(cell_8_16
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.1500 -0.0200 0.1750)
+      )
+    )
+)
+(cell_8_17
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.1750 -0.0200 0.2000)
+      )
+    )
+)
+(cell_8_18
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.2000 -0.0200 0.2250)
+      )
+    )
+)
+(cell_8_19
+    (:target main_table)
+    (:ranges (
+        (-0.0400 0.2250 -0.0200 0.2500)
+      )
+    )
+)
+(cell_9_0
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.2500 0.0000 -0.2250)
+      )
+    )
+)
+(cell_9_1
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.2250 0.0000 -0.2000)
+      )
+    )
+)
+(cell_9_2
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.2000 0.0000 -0.1750)
+      )
+    )
+)
+(cell_9_3
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.1750 0.0000 -0.1500)
+      )
+    )
+)
+(cell_9_4
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.1500 0.0000 -0.1250)
+      )
+    )
+)
+(cell_9_5
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.1250 0.0000 -0.1000)
+      )
+    )
+)
+(cell_9_6
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.1000 0.0000 -0.0750)
+      )
+    )
+)
+(cell_9_7
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.0750 0.0000 -0.0500)
+      )
+    )
+)
+(cell_9_8
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.0500 0.0000 -0.0250)
+      )
+    )
+)
+(cell_9_9
+    (:target main_table)
+    (:ranges (
+        (-0.0200 -0.0250 0.0000 0.0000)
+      )
+    )
+)
+(cell_9_10
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.0000 0.0000 0.0250)
+      )
+    )
+)
+(cell_9_11
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.0250 0.0000 0.0500)
+      )
+    )
+)
+(cell_9_12
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.0500 0.0000 0.0750)
+      )
+    )
+)
+(cell_9_13
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.0750 0.0000 0.1000)
+      )
+    )
+)
+(cell_9_14
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.1000 0.0000 0.1250)
+      )
+    )
+)
+(cell_9_15
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.1250 0.0000 0.1500)
+      )
+    )
+)
+(cell_9_16
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.1500 0.0000 0.1750)
+      )
+    )
+)
+(cell_9_17
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.1750 0.0000 0.2000)
+      )
+    )
+)
+(cell_9_18
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.2000 0.0000 0.2250)
+      )
+    )
+)
+(cell_9_19
+    (:target main_table)
+    (:ranges (
+        (-0.0200 0.2250 0.0000 0.2500)
+      )
+    )
+)
+(cell_10_0
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.2500 0.0200 -0.2250)
+      )
+    )
+)
+(cell_10_1
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.2250 0.0200 -0.2000)
+      )
+    )
+)
+(cell_10_2
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.2000 0.0200 -0.1750)
+      )
+    )
+)
+(cell_10_3
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.1750 0.0200 -0.1500)
+      )
+    )
+)
+(cell_10_4
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.1500 0.0200 -0.1250)
+      )
+    )
+)
+(cell_10_5
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.1250 0.0200 -0.1000)
+      )
+    )
+)
+(cell_10_6
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.1000 0.0200 -0.0750)
+      )
+    )
+)
+(cell_10_7
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.0750 0.0200 -0.0500)
+      )
+    )
+)
+(cell_10_8
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.0500 0.0200 -0.0250)
+      )
+    )
+)
+(cell_10_9
+    (:target main_table)
+    (:ranges (
+        (0.0000 -0.0250 0.0200 0.0000)
+      )
+    )
+)
+(cell_10_10
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.0000 0.0200 0.0250)
+      )
+    )
+)
+(cell_10_11
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.0250 0.0200 0.0500)
+      )
+    )
+)
+(cell_10_12
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.0500 0.0200 0.0750)
+      )
+    )
+)
+(cell_10_13
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.0750 0.0200 0.1000)
+      )
+    )
+)
+(cell_10_14
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.1000 0.0200 0.1250)
+      )
+    )
+)
+(cell_10_15
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.1250 0.0200 0.1500)
+      )
+    )
+)
+(cell_10_16
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.1500 0.0200 0.1750)
+      )
+    )
+)
+(cell_10_17
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.1750 0.0200 0.2000)
+      )
+    )
+)
+(cell_10_18
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.2000 0.0200 0.2250)
+      )
+    )
+)
+(cell_10_19
+    (:target main_table)
+    (:ranges (
+        (0.0000 0.2250 0.0200 0.2500)
+      )
+    )
+)
+(cell_11_0
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.2500 0.0400 -0.2250)
+      )
+    )
+)
+(cell_11_1
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.2250 0.0400 -0.2000)
+      )
+    )
+)
+(cell_11_2
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.2000 0.0400 -0.1750)
+      )
+    )
+)
+(cell_11_3
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.1750 0.0400 -0.1500)
+      )
+    )
+)
+(cell_11_4
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.1500 0.0400 -0.1250)
+      )
+    )
+)
+(cell_11_5
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.1250 0.0400 -0.1000)
+      )
+    )
+)
+(cell_11_6
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.1000 0.0400 -0.0750)
+      )
+    )
+)
+(cell_11_7
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.0750 0.0400 -0.0500)
+      )
+    )
+)
+(cell_11_8
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.0500 0.0400 -0.0250)
+      )
+    )
+)
+(cell_11_9
+    (:target main_table)
+    (:ranges (
+        (0.0200 -0.0250 0.0400 0.0000)
+      )
+    )
+)
+(cell_11_10
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.0000 0.0400 0.0250)
+      )
+    )
+)
+(cell_11_11
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.0250 0.0400 0.0500)
+      )
+    )
+)
+(cell_11_12
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.0500 0.0400 0.0750)
+      )
+    )
+)
+(cell_11_13
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.0750 0.0400 0.1000)
+      )
+    )
+)
+(cell_11_14
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.1000 0.0400 0.1250)
+      )
+    )
+)
+(cell_11_15
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.1250 0.0400 0.1500)
+      )
+    )
+)
+(cell_11_16
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.1500 0.0400 0.1750)
+      )
+    )
+)
+(cell_11_17
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.1750 0.0400 0.2000)
+      )
+    )
+)
+(cell_11_18
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.2000 0.0400 0.2250)
+      )
+    )
+)
+(cell_11_19
+    (:target main_table)
+    (:ranges (
+        (0.0200 0.2250 0.0400 0.2500)
+      )
+    )
+)
+(cell_12_0
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.2500 0.0600 -0.2250)
+      )
+    )
+)
+(cell_12_1
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.2250 0.0600 -0.2000)
+      )
+    )
+)
+(cell_12_2
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.2000 0.0600 -0.1750)
+      )
+    )
+)
+(cell_12_3
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.1750 0.0600 -0.1500)
+      )
+    )
+)
+(cell_12_4
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.1500 0.0600 -0.1250)
+      )
+    )
+)
+(cell_12_5
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.1250 0.0600 -0.1000)
+      )
+    )
+)
+(cell_12_6
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.1000 0.0600 -0.0750)
+      )
+    )
+)
+(cell_12_7
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.0750 0.0600 -0.0500)
+      )
+    )
+)
+(cell_12_8
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.0500 0.0600 -0.0250)
+      )
+    )
+)
+(cell_12_9
+    (:target main_table)
+    (:ranges (
+        (0.0400 -0.0250 0.0600 0.0000)
+      )
+    )
+)
+(cell_12_10
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.0000 0.0600 0.0250)
+      )
+    )
+)
+(cell_12_11
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.0250 0.0600 0.0500)
+      )
+    )
+)
+(cell_12_12
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.0500 0.0600 0.0750)
+      )
+    )
+)
+(cell_12_13
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.0750 0.0600 0.1000)
+      )
+    )
+)
+(cell_12_14
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.1000 0.0600 0.1250)
+      )
+    )
+)
+(cell_12_15
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.1250 0.0600 0.1500)
+      )
+    )
+)
+(cell_12_16
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.1500 0.0600 0.1750)
+      )
+    )
+)
+(cell_12_17
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.1750 0.0600 0.2000)
+      )
+    )
+)
+(cell_12_18
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.2000 0.0600 0.2250)
+      )
+    )
+)
+(cell_12_19
+    (:target main_table)
+    (:ranges (
+        (0.0400 0.2250 0.0600 0.2500)
+      )
+    )
+)
+(cell_13_0
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.2500 0.0800 -0.2250)
+      )
+    )
+)
+(cell_13_1
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.2250 0.0800 -0.2000)
+      )
+    )
+)
+(cell_13_2
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.2000 0.0800 -0.1750)
+      )
+    )
+)
+(cell_13_3
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.1750 0.0800 -0.1500)
+      )
+    )
+)
+(cell_13_4
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.1500 0.0800 -0.1250)
+      )
+    )
+)
+(cell_13_5
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.1250 0.0800 -0.1000)
+      )
+    )
+)
+(cell_13_6
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.1000 0.0800 -0.0750)
+      )
+    )
+)
+(cell_13_7
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.0750 0.0800 -0.0500)
+      )
+    )
+)
+(cell_13_8
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.0500 0.0800 -0.0250)
+      )
+    )
+)
+(cell_13_9
+    (:target main_table)
+    (:ranges (
+        (0.0600 -0.0250 0.0800 0.0000)
+      )
+    )
+)
+(cell_13_10
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.0000 0.0800 0.0250)
+      )
+    )
+)
+(cell_13_11
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.0250 0.0800 0.0500)
+      )
+    )
+)
+(cell_13_12
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.0500 0.0800 0.0750)
+      )
+    )
+)
+(cell_13_13
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.0750 0.0800 0.1000)
+      )
+    )
+)
+(cell_13_14
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.1000 0.0800 0.1250)
+      )
+    )
+)
+(cell_13_15
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.1250 0.0800 0.1500)
+      )
+    )
+)
+(cell_13_16
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.1500 0.0800 0.1750)
+      )
+    )
+)
+(cell_13_17
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.1750 0.0800 0.2000)
+      )
+    )
+)
+(cell_13_18
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.2000 0.0800 0.2250)
+      )
+    )
+)
+(cell_13_19
+    (:target main_table)
+    (:ranges (
+        (0.0600 0.2250 0.0800 0.2500)
+      )
+    )
+)
+(cell_14_0
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.2500 0.1000 -0.2250)
+      )
+    )
+)
+(cell_14_1
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.2250 0.1000 -0.2000)
+      )
+    )
+)
+(cell_14_2
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.2000 0.1000 -0.1750)
+      )
+    )
+)
+(cell_14_3
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.1750 0.1000 -0.1500)
+      )
+    )
+)
+(cell_14_4
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.1500 0.1000 -0.1250)
+      )
+    )
+)
+(cell_14_5
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.1250 0.1000 -0.1000)
+      )
+    )
+)
+(cell_14_6
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.1000 0.1000 -0.0750)
+      )
+    )
+)
+(cell_14_7
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.0750 0.1000 -0.0500)
+      )
+    )
+)
+(cell_14_8
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.0500 0.1000 -0.0250)
+      )
+    )
+)
+(cell_14_9
+    (:target main_table)
+    (:ranges (
+        (0.0800 -0.0250 0.1000 0.0000)
+      )
+    )
+)
+(cell_14_10
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.0000 0.1000 0.0250)
+      )
+    )
+)
+(cell_14_11
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.0250 0.1000 0.0500)
+      )
+    )
+)
+(cell_14_12
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.0500 0.1000 0.0750)
+      )
+    )
+)
+(cell_14_13
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.0750 0.1000 0.1000)
+      )
+    )
+)
+(cell_14_14
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.1000 0.1000 0.1250)
+      )
+    )
+)
+(cell_14_15
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.1250 0.1000 0.1500)
+      )
+    )
+)
+(cell_14_16
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.1500 0.1000 0.1750)
+      )
+    )
+)
+(cell_14_17
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.1750 0.1000 0.2000)
+      )
+    )
+)
+(cell_14_18
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.2000 0.1000 0.2250)
+      )
+    )
+)
+(cell_14_19
+    (:target main_table)
+    (:ranges (
+        (0.0800 0.2250 0.1000 0.2500)
+      )
+    )
+)
+(cell_15_0
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.2500 0.1200 -0.2250)
+      )
+    )
+)
+(cell_15_1
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.2250 0.1200 -0.2000)
+      )
+    )
+)
+(cell_15_2
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.2000 0.1200 -0.1750)
+      )
+    )
+)
+(cell_15_3
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.1750 0.1200 -0.1500)
+      )
+    )
+)
+(cell_15_4
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.1500 0.1200 -0.1250)
+      )
+    )
+)
+(cell_15_5
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.1250 0.1200 -0.1000)
+      )
+    )
+)
+(cell_15_6
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.1000 0.1200 -0.0750)
+      )
+    )
+)
+(cell_15_7
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.0750 0.1200 -0.0500)
+      )
+    )
+)
+(cell_15_8
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.0500 0.1200 -0.0250)
+      )
+    )
+)
+(cell_15_9
+    (:target main_table)
+    (:ranges (
+        (0.1000 -0.0250 0.1200 0.0000)
+      )
+    )
+)
+(cell_15_10
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.0000 0.1200 0.0250)
+      )
+    )
+)
+(cell_15_11
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.0250 0.1200 0.0500)
+      )
+    )
+)
+(cell_15_12
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.0500 0.1200 0.0750)
+      )
+    )
+)
+(cell_15_13
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.0750 0.1200 0.1000)
+      )
+    )
+)
+(cell_15_14
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.1000 0.1200 0.1250)
+      )
+    )
+)
+(cell_15_15
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.1250 0.1200 0.1500)
+      )
+    )
+)
+(cell_15_16
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.1500 0.1200 0.1750)
+      )
+    )
+)
+(cell_15_17
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.1750 0.1200 0.2000)
+      )
+    )
+)
+(cell_15_18
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.2000 0.1200 0.2250)
+      )
+    )
+)
+(cell_15_19
+    (:target main_table)
+    (:ranges (
+        (0.1000 0.2250 0.1200 0.2500)
+      )
+    )
+)
+(cell_16_0
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.2500 0.1400 -0.2250)
+      )
+    )
+)
+(cell_16_1
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.2250 0.1400 -0.2000)
+      )
+    )
+)
+(cell_16_2
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.2000 0.1400 -0.1750)
+      )
+    )
+)
+(cell_16_3
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.1750 0.1400 -0.1500)
+      )
+    )
+)
+(cell_16_4
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.1500 0.1400 -0.1250)
+      )
+    )
+)
+(cell_16_5
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.1250 0.1400 -0.1000)
+      )
+    )
+)
+(cell_16_6
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.1000 0.1400 -0.0750)
+      )
+    )
+)
+(cell_16_7
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.0750 0.1400 -0.0500)
+      )
+    )
+)
+(cell_16_8
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.0500 0.1400 -0.0250)
+      )
+    )
+)
+(cell_16_9
+    (:target main_table)
+    (:ranges (
+        (0.1200 -0.0250 0.1400 0.0000)
+      )
+    )
+)
+(cell_16_10
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.0000 0.1400 0.0250)
+      )
+    )
+)
+(cell_16_11
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.0250 0.1400 0.0500)
+      )
+    )
+)
+(cell_16_12
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.0500 0.1400 0.0750)
+      )
+    )
+)
+(cell_16_13
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.0750 0.1400 0.1000)
+      )
+    )
+)
+(cell_16_14
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.1000 0.1400 0.1250)
+      )
+    )
+)
+(cell_16_15
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.1250 0.1400 0.1500)
+      )
+    )
+)
+(cell_16_16
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.1500 0.1400 0.1750)
+      )
+    )
+)
+(cell_16_17
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.1750 0.1400 0.2000)
+      )
+    )
+)
+(cell_16_18
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.2000 0.1400 0.2250)
+      )
+    )
+)
+(cell_16_19
+    (:target main_table)
+    (:ranges (
+        (0.1200 0.2250 0.1400 0.2500)
+      )
+    )
+)
+(cell_17_0
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.2500 0.1600 -0.2250)
+      )
+    )
+)
+(cell_17_1
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.2250 0.1600 -0.2000)
+      )
+    )
+)
+(cell_17_2
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.2000 0.1600 -0.1750)
+      )
+    )
+)
+(cell_17_3
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.1750 0.1600 -0.1500)
+      )
+    )
+)
+(cell_17_4
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.1500 0.1600 -0.1250)
+      )
+    )
+)
+(cell_17_5
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.1250 0.1600 -0.1000)
+      )
+    )
+)
+(cell_17_6
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.1000 0.1600 -0.0750)
+      )
+    )
+)
+(cell_17_7
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.0750 0.1600 -0.0500)
+      )
+    )
+)
+(cell_17_8
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.0500 0.1600 -0.0250)
+      )
+    )
+)
+(cell_17_9
+    (:target main_table)
+    (:ranges (
+        (0.1400 -0.0250 0.1600 0.0000)
+      )
+    )
+)
+(cell_17_10
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.0000 0.1600 0.0250)
+      )
+    )
+)
+(cell_17_11
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.0250 0.1600 0.0500)
+      )
+    )
+)
+(cell_17_12
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.0500 0.1600 0.0750)
+      )
+    )
+)
+(cell_17_13
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.0750 0.1600 0.1000)
+      )
+    )
+)
+(cell_17_14
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.1000 0.1600 0.1250)
+      )
+    )
+)
+(cell_17_15
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.1250 0.1600 0.1500)
+      )
+    )
+)
+(cell_17_16
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.1500 0.1600 0.1750)
+      )
+    )
+)
+(cell_17_17
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.1750 0.1600 0.2000)
+      )
+    )
+)
+(cell_17_18
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.2000 0.1600 0.2250)
+      )
+    )
+)
+(cell_17_19
+    (:target main_table)
+    (:ranges (
+        (0.1400 0.2250 0.1600 0.2500)
+      )
+    )
+)
+(cell_18_0
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.2500 0.1800 -0.2250)
+      )
+    )
+)
+(cell_18_1
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.2250 0.1800 -0.2000)
+      )
+    )
+)
+(cell_18_2
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.2000 0.1800 -0.1750)
+      )
+    )
+)
+(cell_18_3
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.1750 0.1800 -0.1500)
+      )
+    )
+)
+(cell_18_4
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.1500 0.1800 -0.1250)
+      )
+    )
+)
+(cell_18_5
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.1250 0.1800 -0.1000)
+      )
+    )
+)
+(cell_18_6
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.1000 0.1800 -0.0750)
+      )
+    )
+)
+(cell_18_7
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.0750 0.1800 -0.0500)
+      )
+    )
+)
+(cell_18_8
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.0500 0.1800 -0.0250)
+      )
+    )
+)
+(cell_18_9
+    (:target main_table)
+    (:ranges (
+        (0.1600 -0.0250 0.1800 0.0000)
+      )
+    )
+)
+(cell_18_10
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.0000 0.1800 0.0250)
+      )
+    )
+)
+(cell_18_11
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.0250 0.1800 0.0500)
+      )
+    )
+)
+(cell_18_12
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.0500 0.1800 0.0750)
+      )
+    )
+)
+(cell_18_13
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.0750 0.1800 0.1000)
+      )
+    )
+)
+(cell_18_14
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.1000 0.1800 0.1250)
+      )
+    )
+)
+(cell_18_15
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.1250 0.1800 0.1500)
+      )
+    )
+)
+(cell_18_16
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.1500 0.1800 0.1750)
+      )
+    )
+)
+(cell_18_17
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.1750 0.1800 0.2000)
+      )
+    )
+)
+(cell_18_18
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.2000 0.1800 0.2250)
+      )
+    )
+)
+(cell_18_19
+    (:target main_table)
+    (:ranges (
+        (0.1600 0.2250 0.1800 0.2500)
+      )
+    )
+)
+(cell_19_0
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.2500 0.2000 -0.2250)
+      )
+    )
+)
+(cell_19_1
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.2250 0.2000 -0.2000)
+      )
+    )
+)
+(cell_19_2
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.2000 0.2000 -0.1750)
+      )
+    )
+)
+(cell_19_3
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.1750 0.2000 -0.1500)
+      )
+    )
+)
+(cell_19_4
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.1500 0.2000 -0.1250)
+      )
+    )
+)
+(cell_19_5
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.1250 0.2000 -0.1000)
+      )
+    )
+)
+(cell_19_6
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.1000 0.2000 -0.0750)
+      )
+    )
+)
+(cell_19_7
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.0750 0.2000 -0.0500)
+      )
+    )
+)
+(cell_19_8
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.0500 0.2000 -0.0250)
+      )
+    )
+)
+(cell_19_9
+    (:target main_table)
+    (:ranges (
+        (0.1800 -0.0250 0.2000 0.0000)
+      )
+    )
+)
+(cell_19_10
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.0000 0.2000 0.0250)
+      )
+    )
+)
+(cell_19_11
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.0250 0.2000 0.0500)
+      )
+    )
+)
+(cell_19_12
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.0500 0.2000 0.0750)
+      )
+    )
+)
+(cell_19_13
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.0750 0.2000 0.1000)
+      )
+    )
+)
+(cell_19_14
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.1000 0.2000 0.1250)
+      )
+    )
+)
+(cell_19_15
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.1250 0.2000 0.1500)
+      )
+    )
+)
+(cell_19_16
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.1500 0.2000 0.1750)
+      )
+    )
+)
+(cell_19_17
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.1750 0.2000 0.2000)
+      )
+    )
+)
+(cell_19_18
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.2000 0.2000 0.2250)
+      )
+    )
+)
+(cell_19_19
+    (:target main_table)
+    (:ranges (
+        (0.1800 0.2250 0.2000 0.2500)
+      )
+    )
+)
+      )
+      (:fixtures
+        main_table - table
+      )
+      (:objects
+        glazed_rim_porcelain_ramekin_0 - glazed_rim_porcelain_ramekin
+milk_0 - milk
+alphabet_soup_0 - alphabet_soup
+butter_0 - butter
+ketchup_0 - ketchup
+akita_black_bowl_0 - akita_black_bowl
+      )
+      (:obj_of_interest
+        milk_0
+        akita_black_bowl_0
+      )
+      (:init
+        (On glazed_rim_porcelain_ramekin_0 main_table_cell_16_15)
+(On milk_0 main_table_cell_14_8)
+(On alphabet_soup_0 main_table_cell_2_4)
+(On butter_0 main_table_cell_10_18)
+(On ketchup_0 main_table_cell_17_3)
+(On akita_black_bowl_0 main_table_cell_13_2)
+      )
+      (:goal
+        (And (On milk_0 akita_black_bowl_0))
+      )
+    )

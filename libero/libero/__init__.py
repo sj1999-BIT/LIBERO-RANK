@@ -35,18 +35,42 @@ def get_default_path_dict(custom_location=None):
     }
 
 
+# def get_libero_path(query_key):
+#     with open(config_file, "r") as f:
+#         config = dict(yaml.load(f.read(), Loader=yaml.FullLoader))
+
+#     # Give warnings in case the user needs to access the paths
+#     for key in config:
+#         if not os.path.exists(config[key]):
+#             print(f"[Warning]: {key} path {config[key]} does not exist!")
+
+#     assert (
+#         query_key in config
+#     ), f"Key {query_key} not found in config file {config_file}. You need to modify it. Available keys are: {config.keys()}"
+#     return config[query_key]
+
 def get_libero_path(query_key):
     with open(config_file, "r") as f:
         config = dict(yaml.load(f.read(), Loader=yaml.FullLoader))
 
-    # Give warnings in case the user needs to access the paths
-    for key in config:
-        if not os.path.exists(config[key]):
-            print(f"[Warning]: {key} path {config[key]} does not exist!")
+    # If any stored paths are stale (e.g. folder was renamed), re-derive from
+    # the current file location and rewrite the config automatically.
+    if any(not os.path.exists(v) for v in config.values()):
+        fresh = get_default_path_dict()
+        # Only overwrite keys whose stored path no longer exists
+        updated = False
+        for key in config:
+            if not os.path.exists(config[key]) and key in fresh:
+                print(f"[Info]: {key} path stale, updating to {fresh[key]}")
+                config[key] = fresh[key]
+                updated = True
+        if updated:
+            with open(config_file, "w") as f:
+                yaml.dump(config, f)
 
     assert (
         query_key in config
-    ), f"Key {query_key} not found in config file {config_file}. You need to modify it. Available keys are: {config.keys()}"
+    ), f"Key {query_key} not found in config file {config_file}. Available keys are: {config.keys()}"
     return config[query_key]
 
 

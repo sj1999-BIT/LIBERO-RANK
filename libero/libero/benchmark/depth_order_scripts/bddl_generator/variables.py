@@ -49,9 +49,94 @@ Type 3: 3 different objects, middle must be distinguishable
 Type 4: 7 different objects + 1 bowl
 """
 
-N_SAME_OBJ_1_BOWL = 1
-N_BOWL_1_OBJ = 2
-THREE_DIFFERENT_OBJ = 3
-ALL_DIFFERENT_OBJ = 4
 
+INSTRUCTION_TEMPLATES = [
+    # # egocentric pick tasks: many same object + 1 bowl
+    # "Pick the closest object and place in the bowl.",
+    # "Pick the furtherest object and place in the bowl.",
+    # "Pick the 1st closest object and place in the bowl.",
+    # "Pick the 2nd closest object and place in the bowl.",
+    # "Pick the 3rd closest object and place in the bowl.",
+    # "Pick the 4th closest object and place in the bowl.",
+    # "Pick the 5th closest object and place in the bowl.",
+    # "Pick the 6th closest object and place in the bowl.",
+    # "Pick the 7th closest object and place in the bowl.",
+    # "Pick the 1st furtherest object and place in the bowl.",
+    # "Pick the 2nd furtherest object and place in the bowl.",
+    # "Pick the 3rd furtherest object and place in the bowl.",
+    # "Pick the 4th furtherest object and place in the bowl.",
+    # "Pick the 5th furtherest object and place in the bowl.",
+    # "Pick the 6th furtherest object and place in the bowl.",
+    # "Pick the 7th furtherest object and place in the bowl.",
+    # # egocentric place tasks: 1 object + many bowls
+    # "Pick the object and place in the closest bowl.",
+    # "Pick the object and place in the furtherest bowl.",
+    # "Pick the object and place in the 1st closest bowl.",
+    # "Pick the object and place in the 2nd closest bowl.",
+    # "Pick the object and place in the 3rd closest bowl.",
+    # "Pick the object and place in the 4th closest bowl.",
+    # "Pick the object and place in the 5th closest bowl.",
+    # "Pick the object and place in the 6th closest bowl.",
+    # "Pick the object and place in the 7th closest bowl.",
+    # "Pick the object and place in the 1st furtherest bowl.",
+    # "Pick the object and place in the 2nd furtherest bowl.",
+    # "Pick the object and place in the 3rd furtherest bowl.",
+    # "Pick the object and place in the 4th furtherest bowl.",
+    # "Pick the object and place in the 5th furtherest bowl.",
+    # "Pick the object and place in the 6th furtherest bowl.",
+    # "Pick the object and place in the 7th furtherest bowl.",
+    # # allocentric pick: many same object + 1 bowl
+    # "Pick the object closest to the bowl and place in the bowl.",
+    # "Pick the object furtherest to the bowl and place in the bowl.",
+    # "Pick the 1st object closest to the bowl and place in the bowl.",
+    # "Pick the 2nd object closest to the bowl and place in the bowl.",
+    # "Pick the 3rd object closest to the bowl and place in the bowl.",
+    # "Pick the 4th object closest to the bowl and place in the bowl.",
+    # "Pick the 5th object closest to the bowl and place in the bowl.",
+    # "Pick the 6th object closest to the bowl and place in the bowl.",
+    # "Pick the 7th object closest to the bowl and place in the bowl.",
+    # "Pick the 1st object furtherest to the bowl and place in the bowl.",
+    # "Pick the 2nd object furtherest to the bowl and place in the bowl.",
+    # "Pick the 3rd object furtherest to the bowl and place in the bowl.",
+    # "Pick the 4th object furtherest to the bowl and place in the bowl.",
+    # "Pick the 5th object furtherest to the bowl and place in the bowl.",
+    # "Pick the 6th object furtherest to the bowl and place in the bowl.",
+    # "Pick the 7th object furtherest to the bowl and place in the bowl.",
+    # # allocentric place: 1 object + many bowls
+    # "Pick the object and place in the bowl closest to it.",
+    # "Pick the object and place in the bowl furtherest from it.",
+    # "Pick the object and place in the 1st bowl closest to it.",
+    # "Pick the object and place in the 2nd bowl closest to it.",
+    # "Pick the object and place in the 3rd bowl closest to it.",
+    # "Pick the object and place in the 4th bowl closest to it.",
+    # "Pick the object and place in the 5th bowl closest to it.",
+    # "Pick the object and place in the 6th bowl closest to it.",
+    # "Pick the object and place in the 7th bowl closest to it.",
+    # "Pick the object and place in the 1st bowl furtherest from it.",
+    # "Pick the object and place in the 2nd bowl furtherest from it.",
+    # "Pick the object and place in the 3rd bowl furtherest from it.",
+    # "Pick the object and place in the 4th bowl furtherest from it.",
+    # "Pick the object and place in the 5th bowl furtherest from it.",
+    # "Pick the object and place in the 6th bowl furtherest from it.",
+    # "Pick the object and place in the 7th bowl furtherest from it.",
+    # # pick by feature: many different object + 1 bowl
+    # "Pick the largest object and place in the bowl.",
+    # "Pick the smallest object and place in the bowl.",
+    # "Pick the 1st largest object and place in the bowl.",
+    # "Pick the 2nd largest object and place in the bowl.",
+    # "Pick the 3rd largest object and place in the bowl.",
+    # "Pick the 4th largest object and place in the bowl.",
+    # "Pick the 5th largest object and place in the bowl.",
+    # "Pick the 6th largest object and place in the bowl.",
+    # "Pick the 7th largest object and place in the bowl.",
+    # "Pick the 1st smallest object and place in the bowl.",
+    # "Pick the 2nd smallest object and place in the bowl.",
+    # "Pick the 3rd smallest object and place in the bowl.",
+    # "Pick the 4th smallest object and place in the bowl.",
+    # "Pick the 5th smallest object and place in the bowl.",
+    # "Pick the 6th smallest object and place in the bowl.",
+    # "Pick the 7th smallest object and place in the bowl.",
+    # middle pick: 3 different object with col restriction + one bowl
+    "Pick the object in the middle and place in the bowl."
+]
 

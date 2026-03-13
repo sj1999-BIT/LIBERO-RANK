@@ -1,1 +1,2 @@
-from .bddl_generator import generate_random_depth_order_task_bddl
+from .bddl_generator import generate_random_rank_task_bddl
+from .variables import *
