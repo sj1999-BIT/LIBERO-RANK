@@ -136,12 +136,17 @@ def allocate_obj_to_region(obj_list,
                 remove_regions(region_names, inst2region[obj], spacing=OBJECT_SPACING_REQUIREMENTS[obj_type])
 
             # need to make sure one object is centered
+            # success check: one object must be the median on both x and y axes
             if need_middle_object:
-                # success check: one object must be the median on both x and y axes
-                non_bowl = [obj for obj in inst2region if BOWL_TYPE not in obj]
-                sorted_by_x = sorted(non_bowl, key=lambda o: parse_cell_region(inst2region[o])[0])
-                sorted_by_y = sorted(non_bowl, key=lambda o: parse_cell_region(inst2region[o])[1])
-                mid = len(non_bowl) // 2
+                # has_bowl means only one bowl, so middle is non_bowl, else its about finding middle bowl
+                if has_bowl is True: 
+                    target_obj_list = [obj for obj in inst2region if bowl_type not in obj]
+                else:
+                    target_obj_list = [obj for obj in inst2region if bowl_type in obj]
+                    
+                sorted_by_x = sorted(target_obj_list, key=lambda o: parse_cell_region(inst2region[o])[0])
+                sorted_by_y = sorted(target_obj_list, key=lambda o: parse_cell_region(inst2region[o])[1])
+                mid = len(target_obj_list) // 2
                 if sorted_by_x[mid] != sorted_by_y[mid]:
                     continue  # no single object is the center on both axes, retry
 

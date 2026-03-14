@@ -150,5 +150,8 @@ INSTRUCTION_TEMPLATES = [
     "Pick the 5th smallest object and place in the bowl.",
     # middle pick: 3 different object with col restriction + one bowl
     "Pick the object in the middle and place in the bowl."
+    "Pick the object and place in the bowl in the middle."
 ]
+
+
 

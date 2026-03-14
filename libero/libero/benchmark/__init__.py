@@ -323,7 +323,7 @@ class LIBERO_100(Benchmark):
 from typing import List, Optional
 # from .generate_bddl import generate_rndom_bddl, OBJECT_POOL, BOWL_TYPE, 
 
-from .depth_order_scripts.bddl_generator import generate_random_rank_task_bddl, INSTRUCTION_TEMPLATES, OBJECT_POOL, BOWL_TYPE
+from .rank_scripts.bddl_generator import generate_random_rank_task_bddl, INSTRUCTION_TEMPLATES, OBJECT_POOL, BOWL_TYPE
 
 # All object types that can appear as pick targets (everything except the bowl).
 NON_BOWL_POOL = [obj for obj in OBJECT_POOL if obj != BOWL_TYPE]

@@ -125,7 +125,9 @@ def generate_middle_pick_task_bddl(
     seed: Optional[int] = None,
     grid_size: Optional[int] = 20,  
     output_path: Optional[str] = None,
+    object_pool: Optional[list] = OBJECT_POOL,
     bowl_type: str = BOWL_TYPE,
+    obj_num: int = 5,       
     extra_regions: Optional[dict] = None,
     save_bddl:bool = False
 ) -> dict:
@@ -143,7 +145,7 @@ def generate_middle_pick_task_bddl(
 
     obj_count_dict = {}
     for _ in range(obj_num):
-        cur_obj_type = random.choice(OBJECT_POOL) if seed is not None else rng.choice(OBJECT_POOL)
+        cur_obj_type = rng.choice(object_pool)
         if cur_obj_type in obj_count_dict.keys():
             obj_count_dict[cur_obj_type] += 1
         else:
@@ -180,6 +182,65 @@ def generate_middle_pick_task_bddl(
                          target_object=middle_object, 
                          save_bddl=save_bddl, 
                          output_path=output_path)
+
+
+def generate_middle_place_task_bddl(
+    language: str,
+    seed: Optional[int] = None,
+    grid_size: Optional[int] = 20,  
+    output_path: Optional[str] = None,
+    bowl_type: str = BOWL_TYPE,
+    obj_num: int = 5,              
+    object_pool: Optional[list] = OBJECT_POOL,
+    extra_regions: Optional[dict] = None,
+    save_bddl:bool = False
+) -> dict:
+    
+    # the number of objects are between 3, 5, 7
+    rng = np.random.RandomState(seed)  # works for both None and int seeds
+
+
+    bowl_num = rng.choice([3, 5, 7])
+
+    
+    # a single random object to be picked
+    target_obj_type = f"{rng.choice(object_pool)}_0"
+    obj_list = [target_obj_type, ]
+
+    for i in range(bowl_num):
+        obj_list.append(f"{bowl_type}_{i}")
+    
+
+    # allocate the object to each region
+    inst2region, regions = allocate_obj_to_region(obj_list,
+                                                has_bowl=False, # many bowl
+                                                grid_size=grid_size,
+                                                seed=seed,
+                                                need_middle_object=True, # need a middle bowl
+                                                )
+    
+    # need to sort the objects by their x-coordinate (row index) to determine the target object based on the language instruction
+    # sort inst2region by row index (x-coordinate) in descending order (largest x = closest to camera)
+    sorted_objects = sorted(inst2region.keys(), key=lambda obj: parse_cell_region(inst2region[obj])[0], reverse=True)
+
+    # get the middle bowl
+    sorted_objects = [obj for obj in sorted_objects if bowl_type in obj]
+
+
+    print(f"[DEBUG INFO generate_middle_place_task_bddl]: sorted object types {sorted_objects}")
+    middle_bowl = sorted_objects[len(sorted_objects) // 2]
+
+    # generate bddl based on input
+    return generate_bddl(resolved_language=language, 
+                         inst2region=inst2region, 
+                         regions=regions, 
+                         all_objects=obj_list, 
+                         target_object=target_obj_type, 
+                         bowl_instance=middle_bowl, # bowl instance is the middle one
+                         save_bddl=save_bddl, 
+                         output_path=output_path)
+
+
 
 
 def generate_egocentric_pick_task_bddl(
@@ -555,11 +616,29 @@ def generate_random_rank_task_bddl(
     lang = language.lower().strip()
 
 
-    # ── middle pick ───────────────────────────────────────────────────────────
-    if "middle" in lang:
-        # generate 
-        return generate_middle_pick_task_bddl(language, seed, grid_size=grid_size, extra_regions=extra_regions, output_path=output_path, save_bddl=save_bddl)
+    # ── middle place: "place in the bowl in the middle" ──────────────────────
+    if "middle" in lang and re.search(r"place.*bowl.*middle|bowl.*middle", lang):
+        print(f"[DEBUG INFO]: {language}, middle place task implemented")
+        return generate_middle_place_task_bddl(language=language,
+                                            seed=seed,
+                                            grid_size=grid_size,
+                                            obj_num=num_objects,
+                                            output_path=output_path,
+                                            extra_regions=extra_regions,
+                                            object_pool=object_pool,
+                                            save_bddl=save_bddl)
 
+    # ── middle pick: "pick the object in the middle" ─────────────────────────
+    if "middle" in lang:
+        return generate_middle_pick_task_bddl(language=language,
+                                            seed=seed,
+                                            grid_size=grid_size,
+                                            obj_num=num_objects,
+                                            output_path=output_path,
+                                            extra_regions=extra_regions,
+                                            object_pool=object_pool,
+                                            save_bddl=save_bddl)
+    
     # ── feature pick (largest / smallest) ────────────────────────────────────
     if re.search(r"\b(largest|smallest)\b", lang):
         print(f"[DEBUG INFO]：{language}, feature pick task is implemented")

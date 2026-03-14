@@ -1,4 +1,4 @@
-from libero.libero.benchmark.depth_order_scripts.bddl_generator import generate_random_rank_task_bddl
+from libero.libero.benchmark.rank_scripts.bddl_generator import generate_random_rank_task_bddl
 from random import randint
 import numpy as np
 
@@ -96,24 +96,25 @@ INSTRUCTION_TEMPLATES = {
     # "Pick the object and place in the 6th bowl furtherest from it.",
     # "Pick the object and place in the 7th bowl furtherest from it.",
     # # pick by feature: many different object + 1 bowl
-    "Pick the largest object and place in the bowl.",
-    "Pick the smallest object and place in the bowl.",
-    "Pick the 1st largest object and place in the bowl.",
-    "Pick the 2nd largest object and place in the bowl.",
-    "Pick the 3rd largest object and place in the bowl.",
-    "Pick the 4th largest object and place in the bowl.",
-    "Pick the 5th largest object and place in the bowl.",
+    # "Pick the largest object and place in the bowl.",
+    # "Pick the smallest object and place in the bowl.",
+    # "Pick the 1st largest object and place in the bowl.",
+    # "Pick the 2nd largest object and place in the bowl.",
+    # "Pick the 3rd largest object and place in the bowl.",
+    # "Pick the 4th largest object and place in the bowl.",
+    # "Pick the 5th largest object and place in the bowl.",
     # "Pick the 6th largest object and place in the bowl.",
     # "Pick the 7th largest object and place in the bowl.",
-    "Pick the 1st smallest object and place in the bowl.",
-    "Pick the 2nd smallest object and place in the bowl.",
-    "Pick the 3rd smallest object and place in the bowl.",
-    "Pick the 4th smallest object and place in the bowl.",
-    "Pick the 5th smallest object and place in the bowl.",
+    # "Pick the 1st smallest object and place in the bowl.",
+    # "Pick the 2nd smallest object and place in the bowl.",
+    # "Pick the 3rd smallest object and place in the bowl.",
+    # "Pick the 4th smallest object and place in the bowl.",
+    # "Pick the 5th smallest object and place in the bowl.",
     # "Pick the 6th smallest object and place in the bowl.",
     # "Pick the 7th smallest object and place in the bowl.",
     # middle pick: 3 different object with col restriction + one bowl
-    # "Pick the object in the middle and place in the bowl."
+    # "Pick the object in the middle and place in the bowl.",
+    "Pick the object and place in the bowl in the middle."
 }
 
 
@@ -153,9 +154,9 @@ if __name__ == "__main__":
 
             # print(sum(delta_pos))
 
-            # if sum(delta_pos) < 0.02:
-            #     # move to the target bowl after reaching the target pick
-            #     target_key = result["target_place"]
+            if sum(delta_pos) < 0.02:
+                # move to the target bowl after reaching the target pick
+                target_key = result["target_place"]
                 
 
             action_7dim = np.zeros(7)
