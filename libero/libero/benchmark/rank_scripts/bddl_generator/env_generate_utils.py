@@ -23,13 +23,16 @@ e.g. n=4 → 16 cells, n=5 → 25 cells.
 """
 def make_table_regions(n: int) -> dict:
     regions = {}
-    xs = np.linspace(-0.20, 0.20, n + 1)
+    x_min, x_max = -0.20, 0.20
+    restricted_threshold = 0.10 * (x_max - x_min)
+    x_max = x_max -   restricted_threshold # trim top 10% of x range
+    x_min = x_min + restricted_threshold  # trim top 10% of x range
+    xs = np.linspace(x_min, x_max, n + 1)
     ys = np.linspace(-0.25, 0.25, n + 1)
     for i, (x0, x1) in enumerate(zip(xs[:-1], xs[1:])):
         for j, (y0, y1) in enumerate(zip(ys[:-1], ys[1:])):
             regions[f"cell_{i}_{j}"] = (float(x0), float(y0), float(x1), float(y1))
     return regions
-
 
 """
 # region_name is in the format "cell_i_j"
@@ -143,7 +146,7 @@ def allocate_obj_to_region(obj_list,
                     target_obj_list = [obj for obj in inst2region if bowl_type not in obj]
                 else:
                     target_obj_list = [obj for obj in inst2region if bowl_type in obj]
-                    
+
                 sorted_by_x = sorted(target_obj_list, key=lambda o: parse_cell_region(inst2region[o])[0])
                 sorted_by_y = sorted(target_obj_list, key=lambda o: parse_cell_region(inst2region[o])[1])
                 mid = len(target_obj_list) // 2

@@ -11,6 +11,7 @@ from .target_zones import *
 
 
 def get_object_fn(category_name):
+    # print(f"[DEBUG INFO get_object_fn] OBJECTS_DICT {OBJECTS_DICT.keys()}")
     return OBJECTS_DICT[category_name.lower()]
 
 

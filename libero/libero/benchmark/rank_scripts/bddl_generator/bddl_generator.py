@@ -8,7 +8,7 @@ from typing import Optional
 
 
 
-from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE, INSTRUCTION_TEMPLATES, OBJECT_SIZE_RANK
+from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE, INSTRUCTION_TEMPLATES, OBJECT_SIZE_RANK, BOWL_SIZE_RANK
 from .env_generate_utils import allocate_obj_to_region, parse_cell_region, parse_ranking_index
 
 
@@ -116,7 +116,8 @@ def generate_bddl(
         "bddl_path":             os.path.abspath(output_path),
         "target_object":         target_object,
         "target_place":          bowl_instance, 
-        "target_region":         inst2region[target_object]
+        "target_region":         inst2region[target_object],
+        "resolved_language":     resolved_language
     }
 
 
@@ -241,8 +242,6 @@ def generate_middle_place_task_bddl(
                          output_path=output_path)
 
 
-
-
 def generate_egocentric_pick_task_bddl(
     language: str,
     seed: Optional[int] = None,
@@ -261,6 +260,7 @@ def generate_egocentric_pick_task_bddl(
     
     # objects to be passed to allocate regions
     obj_list = []
+
 
     # pick a specifc object type
     object_types = rng.choice(object_pool)
@@ -296,11 +296,15 @@ def generate_egocentric_pick_task_bddl(
     # get the target rank
     rank = parse_ranking_index(resolved_language, obj_num)
 
-    # print(f"[DEBUG INFO generate_egocentric_pick_task_bddl] instruction {resolved_language}: target rank is {rank}")
+    print(f"[DEBUG INFO generate_egocentric_pick_task_bddl] instruction {resolved_language}: target rank is {rank}")
 
-    # print(f"[DEBUG INFO generate_egocentric_pick_task_bddl] sorted_objects {sorted_objects}")
+    
+
     # get the target object
     target_object = sorted_objects[rank]
+
+    print(f"[DEBUG INFO generate_egocentric_pick_task_bddl] sorted_objects {sorted_objects} and target object {target_object}")
+
 
 
     # generate bddl based on input
@@ -539,7 +543,7 @@ def generate_pick_by_feature_task_bddl(
     grid_size: Optional[int] = 20,
     obj_num: int = 5,               # now = number of *types* to compare
     bowl_type: str = BOWL_TYPE,
-    object_pool: Optional[list] = OBJECT_SIZE_RANK,
+    object_pool: Optional[list] = OBJECT_SIZE_RANK, # input object must be sorted based on ascending size
     output_path: Optional[str] = None,
     extra_regions: Optional[dict] = None,
     save_bddl: bool = False
@@ -566,16 +570,10 @@ def generate_pick_by_feature_task_bddl(
                                                 bowl_type=bowl_type
                                                 )
     
-    # need to sort the objects by their x-coordinate (row index) to determine the target object based on the language instruction
-    # sort inst2region by row index (x-coordinate) in descending order (largest x = closest to camera)
-    sorted_objects = sorted(inst2region.keys(), key=lambda obj: parse_cell_region(inst2region[obj])[0], reverse=True)
-
-    # get the middle object without the bowl
-    # sorted_objects = [obj for obj in sorted_objects if bowl_type not in obj]
-
+    # sort objects based on size
     sorted_objects = sorted(
         [inst for inst in inst2region if bowl_type not in inst],
-        key=lambda inst: OBJECT_SIZE_RANK.index(inst.rsplit("_", 1)[0])
+        key=lambda inst: object_pool.index(inst.rsplit("_", 1)[0])
     )
 
     # get the target rank
@@ -596,6 +594,76 @@ def generate_pick_by_feature_task_bddl(
                          save_bddl=save_bddl, 
                          output_path=output_path)
     
+
+
+
+# [DEBUG INFO get_object_fn] OBJECTS_DICT dict_keys(['alphabet_soup', 'bbq_sauce', 'butter', 'cherries', 'chocolate_pudding', 'cookies', 'corn', 'cream_cheese', 'ketchup', 'macaroni_and_cheese', 'mayo', 'milk', 'orange_juice', 'popcorn', 'salad_dressing', 'new_salad_dressing', 'tomato_sauce', 'rack', 'white_bowl', 'akita_black_bowl', 'plate', 'basket', 'chefmate_8_frypan', 'glazed_rim_porcelain_ramekin', 'microwave', 'slide_cabinet', 'window', 'faucet', 'basin_faucet', 'short_cabinet', 'short_fridge', 'wooden_cabinet', 'white_cabinet', 'flat_stove', 'wooden_tray', 'white_storage_box', 'wooden_shelf', 'wooden_two_layer_shelf', 'wine_rack', 'wine_bottle', 'dining_set_group', 'bowl_drainer', 'moka_pot', 'black_book', 'yellow_book', 'red_coffee_mug', 'desk_caddy', 'porcelain_mug', 'white_yellow_mug', 'target_zone'])
+
+def generate_place_by_feature_task_bddl(
+    language: str,
+    seed: Optional[int] = None,
+    grid_size: Optional[int] = 20,
+    obj_num: int = 5,               # now = number of *types* to compare
+    bowl_type: str = BOWL_TYPE,
+    object_pool: Optional[list] = BOWL_SIZE_RANK, # take bowls from bowls with clear size
+    output_path: Optional[str] = None,
+    extra_regions: Optional[dict] = None,
+    save_bddl: bool = False
+) -> dict:
+    # the number of objects are between 3, 5, 7
+    rng = np.random.RandomState(seed)  # works for both None and int seeds
+
+
+    
+    # objects to be passed to allocate regions
+    obj_list = []
+
+
+    bowl_num = min(len(BOWL_SIZE_RANK), obj_num)
+
+    # random pick unqiue bowls, add _0 suffix to form valid label
+    obj_list = [ f"{i}_0" for i in rng.choice(BOWL_SIZE_RANK, size=bowl_num, replace=False)]
+
+    # a single random object to be picked
+    target_obj_type = f"{rng.choice(OBJECT_POOL)}_0"
+    obj_list.append(target_obj_type)
+    
+
+    # allocate the object to each region
+    inst2region, regions = allocate_obj_to_region(obj_list,
+                                                has_bowl=False, # object type is many different bowls
+                                                grid_size=grid_size,
+                                                seed=seed
+                                                )
+    
+
+    sorted_objects = sorted(
+        [inst for inst in inst2region if target_obj_type not in inst],
+        key=lambda inst: BOWL_SIZE_RANK.index(inst.rsplit("_", 1)[0])
+    )
+
+    print(f"[DEBUG INFO generate_place_by_feature_task_bddl] sorted_objects {sorted_objects}")
+
+
+    # get the target rank
+    rank = parse_ranking_index(language, obj_num)
+
+    # print(f"[DEBUG INFO generate_pick_by_feature_task_bddl] instruction {language}: target rank is {rank}")
+
+    # get the target object, IN THIS CASE ITS THE BOWL
+    target_bowl = sorted_objects[rank]
+
+
+    # generate bddl based on input
+    return generate_bddl(resolved_language=language, 
+                         inst2region=inst2region, 
+                         regions=regions, 
+                         all_objects=obj_list, 
+                         target_object=target_obj_type, 
+                         bowl_instance=target_bowl,
+                         save_bddl=save_bddl, 
+                         output_path=output_path)
+   
 
 def generate_random_rank_task_bddl(
     language: str = random.choice(INSTRUCTION_TEMPLATES),
@@ -641,16 +709,26 @@ def generate_random_rank_task_bddl(
     
     # ── feature pick (largest / smallest) ────────────────────────────────────
     if re.search(r"\b(largest|smallest)\b", lang):
-        print(f"[DEBUG INFO]：{language}, feature pick task is implemented")
-        return generate_pick_by_feature_task_bddl(language=language,
-                                                  seed=seed,
-                                                  grid_size=grid_size,
-                                                  obj_num=num_objects,
-                                                  output_path=output_path,
-                                                  extra_regions=extra_regions,
-                                                #   object_pool=object_pool, only use predefined objeck with rank
-                                                  save_bddl=save_bddl)
-
+        if re.search(r"\bbowl\b", lang):
+            print(f"[DEBUG INFO]: {language}, feature place task is implemented")
+            return generate_place_by_feature_task_bddl(language=language,
+                                                    seed=seed,
+                                                    grid_size=grid_size,
+                                                    obj_num=num_objects,
+                                                    output_path=output_path,
+                                                    extra_regions=extra_regions,
+                                                    #   object_pool=object_pool, only use predefined objeck with rank
+                                                    save_bddl=save_bddl)
+        else:
+            print(f"[DEBUG INFO]: {language}, feature pick task is implemented")
+            return generate_pick_by_feature_task_bddl(language=language,
+                                                    seed=seed,
+                                                    grid_size=grid_size,
+                                                    obj_num=num_objects,
+                                                    output_path=output_path,
+                                                    extra_regions=extra_regions,
+                                                    #   object_pool=object_pool, only use predefined objeck with rank
+                                                    save_bddl=save_bddl)
 
     # ── allocentric place: "bowl closest/furthest to it" ─────────────────────
     if re.search(r"bowl.*(closest|furthest|furtherest|farthest).*\bit\b", lang):
@@ -699,7 +777,7 @@ def generate_random_rank_task_bddl(
                                                   extra_regions=extra_regions,
                                                   object_pool=object_pool,
                                                   save_bddl=save_bddl)
-
+    
 
 
     

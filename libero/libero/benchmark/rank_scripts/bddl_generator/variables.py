@@ -13,32 +13,6 @@ OBJECT_POOL = [
     "orange_juice",
 ]
 
-# maximum number of objects of each type to include in the task (including the bowl)
-OBJECT_NUM_LIMITS = {
-    "akita_black_bowl": 7,
-    "milk": 10,
-    "moka_pot": 10,
-    "glazed_rim_porcelain_ramekin": 10,
-    "tomato_sauce": 10,
-    "alphabet_soup": 10,
-    "butter": 10,
-    "ketchup": 10,
-    "orange_juice": 10,
-}
-
-# number of cells that must be between two plates (in any direction) to avoid overlap
-OBJECT_SPACING_REQUIREMENTS = {
-    "akita_black_bowl": 6,
-    "milk": 3,
-    "moka_pot": 4,
-    "glazed_rim_porcelain_ramekin": 4,
-    "tomato_sauce": 3,
-    "alphabet_soup": 3,
-    "butter": 4,
-    "ketchup": 3,
-    "orange_juice": 3,
-}
-
 # smallest to largest
 # "ketchup", Removed cause its too similar to orange juice
 # "tomato_sauce", Removed cause its too similar to alphabet_soup
@@ -50,6 +24,61 @@ OBJECT_SIZE_RANK = [
     "orange_juice",
     "moka_pot",
     # append new object types here in size order
+]
+
+BOWL_POOL = [
+    "white_bowl",
+    "akita_black_bowl",
+    "plate",
+]
+
+BOWL_SIZE_RANK = [
+    "white_bowl",
+    "akita_black_bowl",
+    "plate",
+    # "basket",
+]
+
+# maximum number of objects of each type to include in the task (including the bowl)
+OBJECT_NUM_LIMITS = {
+    "akita_black_bowl": 7,
+    "milk": 7,
+    "moka_pot": 7,
+    "glazed_rim_porcelain_ramekin": 7,
+    "tomato_sauce": 7,
+    "alphabet_soup": 7,
+    "butter": 7,
+    "ketchup": 7,
+    "orange_juice": 7,
+}
+
+# number of cells that must be between two plates (in any direction) to avoid overlap
+OBJECT_SPACING_REQUIREMENTS = {
+    "akita_black_bowl": 7,
+    "plate": 7,
+    "red_bowl": 5,
+    "white_bowl": 5,
+    "simpl_rack": 5,
+    "basket": 5,
+    "milk": 3,
+    "moka_pot": 5,
+    "glazed_rim_porcelain_ramekin": 4,
+    "tomato_sauce": 4,
+    "alphabet_soup": 3,
+    "butter": 4,
+    "ketchup": 3,
+    "orange_juice": 3,
+}
+
+
+
+BOWL_SIZE_RANK = [
+    "akita_black_bowl",
+    "plate",
+    "red_bowl",
+    "white_bowl",
+    "simpl_rack",
+    "basket",
 ]
 
 BOWL_TYPE = "akita_black_bowl"
@@ -148,6 +177,15 @@ INSTRUCTION_TEMPLATES = [
     "Pick the 3rd smallest object and place in the bowl.",
     "Pick the 4th smallest object and place in the bowl.",
     "Pick the 5th smallest object and place in the bowl.",
+    # place by feature: 1 object + different bowl
+    "Pick the object and place in the largest bowl.",
+    "Pick the object and place in the smallest bowl.",
+    "Pick the object and place in the 1st largest bowl.",
+    "Pick the object and place in the 2nd largest bowl.",
+    "Pick the object and place in the 3rd largest bowl.",
+    "Pick the object and place in the 1st smallest bowl.",
+    "Pick the object and place in the 2nd smallest bowl.",
+    "Pick the object and place in the 3rd smallest bowl.",
     # middle pick: 3 different object with col restriction + one bowl
     "Pick the object in the middle and place in the bowl."
     "Pick the object and place in the bowl in the middle."
