@@ -25,11 +25,13 @@ def make_table_regions(n: int) -> dict:
     regions = {}
     x_min, x_max = -0.20, 0.20
     restricted_threshold = 0.10 * (x_max - x_min)
-    x_max = x_max -   restricted_threshold # trim top 10% of x range
-    x_min = x_min + restricted_threshold  # trim top 10% of x range
+    # x_max = x_max -   restricted_threshold # trim top 10% of x range
+    # x_min = x_min + restricted_threshold  # trim top 10% of x range
     xs = np.linspace(x_min, x_max, n + 1)
     ys = np.linspace(-0.25, 0.25, n + 1)
     for i, (x0, x1) in enumerate(zip(xs[:-1], xs[1:])):
+        if i < 4 or i > n - 4:
+            continue 
         for j, (y0, y1) in enumerate(zip(ys[:-1], ys[1:])):
             regions[f"cell_{i}_{j}"] = (float(x0), float(y0), float(x1), float(y1))
     return regions
@@ -188,6 +190,7 @@ def allocate_obj_to_region(obj_list,
 
             
     raise RuntimeError(
+        f"Current objects are {object}"
         f"Could not place all {len(obj_list)} objects after "
         f"{max_attempt} attempts. Try reducing num_objects, spacing, or increasing grid_size."
     )

@@ -263,18 +263,18 @@ def generate_egocentric_pick_task_bddl(
 
 
     # pick a specifc object type
-    object_types = rng.choice(object_pool)
+    object_type = rng.choice(object_pool)
 
 
     # After object_types is determined, substitute into language if it's generic
-    resolved_language = language.replace("object", object_types).replace("item", object_types)
+    resolved_language = language.replace("object", object_type).replace("item", object_type)
 
 
-    obj_num = min(len(object_pool), obj_num)
+    obj_num = min(OBJECT_NUM_LIMITS[object_type], obj_num)
 
      
     for index in range(obj_num):
-        obj_list.append(f"{object_types}_{index}")
+        obj_list.append(f"{object_type}_{index}")
     
 
     # allocate the object to each region

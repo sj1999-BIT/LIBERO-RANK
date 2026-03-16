@@ -43,8 +43,8 @@ BOWL_SIZE_RANK = [
 OBJECT_NUM_LIMITS = {
     "akita_black_bowl": 7,
     "milk": 7,
-    "moka_pot": 7,
-    "glazed_rim_porcelain_ramekin": 7,
+    "moka_pot": 6,
+    "glazed_rim_porcelain_ramekin": 6,
     "tomato_sauce": 7,
     "alphabet_soup": 7,
     "butter": 7,
@@ -54,14 +54,14 @@ OBJECT_NUM_LIMITS = {
 
 # number of cells that must be between two plates (in any direction) to avoid overlap
 OBJECT_SPACING_REQUIREMENTS = {
-    "akita_black_bowl": 7,
+    "akita_black_bowl": 8,
     "plate": 7,
     "red_bowl": 5,
     "white_bowl": 5,
     "simpl_rack": 5,
     "basket": 5,
     "milk": 3,
-    "moka_pot": 5,
+    "moka_pot": 6,
     "glazed_rim_porcelain_ramekin": 4,
     "tomato_sauce": 4,
     "alphabet_soup": 3,

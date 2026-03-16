@@ -183,7 +183,7 @@ def generate_sample_task_video(instruction,
             target_pos = obs[f"{target_key}_pos"]
             delta_pos  = target_pos - robot_eef_pos# keep height constant
 
-            print(delta_pos)
+            # print(delta_pos)
 
             if sum(delta_pos[:2]) < 0.03:
                 # move to the target bowl after reaching the target pick
@@ -247,7 +247,7 @@ def generate_sample_task_video(instruction,
 if __name__ == "__main__":
 
     for cur_instruction in tqdm(INSTRUCTION_TEMPLATES, desc="going through the instructions"):
-        generate_sample_task_video(cur_instruction, save_video=True, render_video=True, env_grid_len=2)
+        generate_sample_task_video(cur_instruction, save_video=True, render_video=False, env_grid_len=4)
         # # # ── video setup ───────────────────────────────────────────────────────
         # # video_name = cur_instruction.strip().replace(" ", "_") + ".mp4"
         # # fourcc = cv2.VideoWriter_fourcc(*"mp4v")
