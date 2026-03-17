@@ -43,7 +43,7 @@ BOWL_SIZE_RANK = [
 OBJECT_NUM_LIMITS = {
     "akita_black_bowl": 7,
     "milk": 7,
-    "moka_pot": 6,
+    "moka_pot": 5,
     "glazed_rim_porcelain_ramekin": 6,
     "tomato_sauce": 7,
     "alphabet_soup": 7,
@@ -54,11 +54,10 @@ OBJECT_NUM_LIMITS = {
 
 # number of cells that must be between two plates (in any direction) to avoid overlap
 OBJECT_SPACING_REQUIREMENTS = {
-    "akita_black_bowl": 8,
+    "akita_black_bowl": 7,
     "plate": 7,
     "red_bowl": 5,
-    "white_bowl": 5,
-    "simpl_rack": 5,
+    "white_bowl": 6,
     "basket": 5,
     "milk": 3,
     "moka_pot": 6,
@@ -70,16 +69,6 @@ OBJECT_SPACING_REQUIREMENTS = {
     "orange_juice": 3,
 }
 
-
-
-BOWL_SIZE_RANK = [
-    "akita_black_bowl",
-    "plate",
-    "red_bowl",
-    "white_bowl",
-    "simpl_rack",
-    "basket",
-]
 
 BOWL_TYPE = "akita_black_bowl"
 
@@ -192,4 +181,14 @@ INSTRUCTION_TEMPLATES = [
 ]
 
 
+def debug_log_print(function_name, debug_message, is_debugging: bool=False):
+    if is_debugging:
+        print(f"[DEBUG INFO {function_name}] {debug_message}")
 
+
+"""
+Label is objecttype_index
+however sometimes object may contain more than one word
+"""
+def get_obj_type(label: str):
+    return "_".join(label.split("_")[:-1])

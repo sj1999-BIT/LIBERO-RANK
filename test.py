@@ -150,7 +150,8 @@ def generate_sample_task_video(instruction,
                                trajectory_len=100,
                                save_video=False, 
                                render_video=False, 
-                               env_grid_len=1):
+                               env_grid_len=1,
+                               save_folder_path=None):
     total_env = env_grid_len * env_grid_len
     
      # ── collect frames from each trajectory ──────────────────────────────────
@@ -216,16 +217,24 @@ def generate_sample_task_video(instruction,
 
     if save_video:
 
-        
+        if save_folder_path is None:
+            save_folder_path = "./"
+
+
         # combine frames to grid
         h, w = all_trajectories[0][0].shape[:2]
         grid_h = h * env_grid_len
         grid_w = w * env_grid_len
 
         # ── video setup ───────────────────────────────────────────────────────
-        video_name = cur_instruction.strip().replace(" ", "_") + ".avi"
-        fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-        video_writer = cv2.VideoWriter(video_name, fourcc, 30, (grid_w, grid_h))
+        title = cur_instruction.strip().replace(" ", "_")
+
+        output_file_path = os.path.join(save_folder_path, title  + ".png")
+
+        if trajectory_len > 1:   
+            output_file_path = os.path.join(save_folder_path, title  + ".avi")
+            fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+            video_writer = cv2.VideoWriter(output_file_path, fourcc, 30, (grid_w, grid_h))
 
         for step_idx in tqdm(range(trajectory_len), desc="combining the frames"):
             grid = np.zeros((grid_h, grid_w, 3), dtype=np.uint8)
@@ -236,80 +245,20 @@ def generate_sample_task_video(instruction,
 
             print(f"[DEBUG INFO generate_sample_task_video] grid size {len(grid[0])} x {len(grid)}")
 
-            video_writer.write(grid)
+            if trajectory_len > 1:    
+                video_writer.write(grid)
+            else:
+                print(f"[DEBUG INFO generate_sample_task_video]： trajectory_len=1, just print a single image")
+                cv2.imwrite(output_file_path, grid)
 
-        video_writer.release()
-
-
-
+        if trajectory_len > 1:   
+            video_writer.release()
 
 
 if __name__ == "__main__":
 
     for cur_instruction in tqdm(INSTRUCTION_TEMPLATES, desc="going through the instructions"):
-        generate_sample_task_video(cur_instruction, save_video=True, render_video=False, env_grid_len=4)
-        # # # ── video setup ───────────────────────────────────────────────────────
-        # # video_name = cur_instruction.strip().replace(" ", "_") + ".mp4"
-        # # fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        # # video_writer = cv2.VideoWriter(video_name, fourcc, 30, (256, 256))
-        
-        # result = generate_random_rank_task_bddl(language=cur_instruction, num_objects=10, save_bddl=True)
-
-        # seed = randint(0, 1000)
-
-        # # print(result)
-
-        # env = OffScreenRenderEnv(bddl_file_name=result["bddl_path"], robots=["Panda"],
-        #                         camera_heights=256, camera_widths=256)
-        # env.seed(seed)
-        # obs = env.reset()
-
-        # # print(obs)
-
-        # # ── get ACTUAL target position from obs, not region center ────────────────
-        # # target_key = result["target_place"]  # e.g. "cookies_1"
-        # target_key = result["target_object"]  # e.g. "cookies_1"
-
-        # target_pos  = obs[f"{target_key}_pos"]  # actual sim position (x, y, z)
-        # target_quat = obs[f"{target_key}_quat"]
-
-        # if "agentview_image" in obs:
-        #     filepath = f"rank_img_results/{create_title(cur_instruction)}.png"
-        #     print(filepath)
-        #     cv2.imwrite(filepath, prep_for_display(obs["agentview_image"]))
-
-
-
-
-        # for step in tqdm(range(500), desc="Moving to target"):
-        #     robot_eef_pos = obs["robot0_eef_pos"]
-
-        #     # Use actual target_pos from obs — update each step in case of physics drift
-        #     target_pos = obs[f"{target_key}_pos"]
-        #     delta_pos  = target_pos[:2] - robot_eef_pos[:2]# keep height constant
-
-        #     # print(sum(delta_pos))
-
-        #     if sum(delta_pos) < 0.02:
-        #         # move to the target bowl after reaching the target pick
-        #         target_key = result["target_place"]
-                
-
-        #     action_7dim = np.zeros(7)
-        #     action_7dim[:2] = np.clip(delta_pos * 10, -1, 1)
-        #     action_7dim[6]  = -1.0   # gripper open
-
-        #     obs, reward, done, info = env.step(action_7dim)
-
-        #     try:
-        #         if "agentview_image" in obs:
-        #             cv2.imshow("Main Camera", prep_for_display(obs["agentview_image"]))
-        #         if "robot0_eye_in_hand_image" in obs:
-        #             cv2.imshow("Gripper Camera", prep_for_display(obs["robot0_eye_in_hand_image"]))
-        #         if cv2.waitKey(1) & 0xFF == 27:
-        #             break
-        #     except Exception:
-        #         pass
-
-        # env.close()
-        # cv2.destroyAllWindows()
+        generate_sample_task_video(cur_instruction, 
+                                   save_folder_path="E:/Shui Jie/PHD_school/research/code/global_depth_order_benchmark/LIBERO-DEPTH-ORDER/rank_img_results", 
+                                   trajectory_len=1, save_video=True, render_video=False, env_grid_len=1)
+      

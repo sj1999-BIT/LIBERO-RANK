@@ -30,7 +30,8 @@ def make_table_regions(n: int) -> dict:
     xs = np.linspace(x_min, x_max, n + 1)
     ys = np.linspace(-0.25, 0.25, n + 1)
     for i, (x0, x1) in enumerate(zip(xs[:-1], xs[1:])):
-        if i < 4 or i > n - 4:
+        # if i < 4 or i > n - 4:
+        if i < 4 or i > n - 5:
             continue 
         for j, (y0, y1) in enumerate(zip(ys[:-1], ys[1:])):
             regions[f"cell_{i}_{j}"] = (float(x0), float(y0), float(x1), float(y1))
@@ -53,35 +54,63 @@ spacing=1 → removes immediate neighbours (original behaviour)
 spacing=2 → removes 2-cell radius around occupied cell
 spacing=0 → removes only the same row (no extra buffer)
 """
-def remove_regions(region_names, occupied_region_name, spacing: int = 1, same_col_allowed: bool = True):
+# def remove_regions(region_names, occupied_region_name, spacing: int = 1, same_col_allowed: bool = True):
 
-    occupied_row, occupied_col = parse_cell_region(occupied_region_name)
+#     occupied_row, occupied_col = parse_cell_region(occupied_region_name)
     
-    # Remove entire row (enforces one object per x-depth level)
-    to_remove = [r for r in region_names if parse_cell_region(r)[0] == occupied_row]
+#     # Remove entire row (enforces one object per x-depth level)
+#     to_remove = [r for r in region_names if parse_cell_region(r)[0] == occupied_row]
+#     for r in to_remove:
+#         if r in region_names:
+#             region_names.remove(r)
+
+#     # Remove entire col if required (enforces one object per x-depth level)
+#     if not same_col_allowed:
+#         to_remove = [r for r in region_names if parse_cell_region(r)[1] == occupied_col]
+#         for r in to_remove:
+#             if r in region_names:
+#                 region_names.remove(r)
+
+#     # Remove all cells within `spacing` distance in both axes
+#     for dx in range(-spacing, spacing + 1):
+#         for dy in range(-spacing, spacing + 1):
+#             if dx == 0 and dy == 0:
+#                 continue  # already removed via row sweep above
+#             adj = f"cell_{occupied_row + dx}_{occupied_col + dy}"
+#             if adj in region_names:
+#                 region_names.remove(adj)
+
+#     return region_names
+
+def remove_regions(region_names: list, occupied_region_name: str, spacing: int = 1, same_col_allowed: bool = True):
+    occupied_row, occupied_col = parse_cell_region(occupied_region_name)
+
+    to_remove = set()
+
+    # ── enforce one object per row (depth level) ─────────────────────────────
+    for r in region_names:
+        row, col = parse_cell_region(r)
+        if row == occupied_row:
+            to_remove.add(r)
+
+    # ── enforce one object per column if required ─────────────────────────────
+    if not same_col_allowed:
+        for r in region_names:
+            row, col = parse_cell_region(r)
+            if col == occupied_col:
+                to_remove.add(r)
+
+    # ── Chebyshev neighbourhood: remove all cells within spacing in all 8 directions ──
+    for r in region_names:
+        row, col = parse_cell_region(r)
+        if max(abs(row - occupied_row), abs(col - occupied_col)) <= spacing:
+            to_remove.add(r)
+
     for r in to_remove:
         if r in region_names:
             region_names.remove(r)
 
-    # Remove entire col if required (enforces one object per x-depth level)
-    if not same_col_allowed:
-        to_remove = [r for r in region_names if parse_cell_region(r)[1] == occupied_col]
-        for r in to_remove:
-            if r in region_names:
-                region_names.remove(r)
-
-    # Remove all cells within `spacing` distance in both axes
-    for dx in range(-spacing, spacing + 1):
-        for dy in range(-spacing, spacing + 1):
-            if dx == 0 and dy == 0:
-                continue  # already removed via row sweep above
-            adj = f"cell_{occupied_row + dx}_{occupied_col + dy}"
-            if adj in region_names:
-                region_names.remove(adj)
-
     return region_names
-
-
 #########################################################################
 # Allocate each object to appropriate region
 #########################################################################
@@ -190,7 +219,7 @@ def allocate_obj_to_region(obj_list,
 
             
     raise RuntimeError(
-        f"Current objects are {object}"
+        f"Current objects are {obj_list}"
         f"Could not place all {len(obj_list)} objects after "
         f"{max_attempt} attempts. Try reducing num_objects, spacing, or increasing grid_size."
     )
@@ -243,3 +272,45 @@ def parse_ranking_index(language: str, num_items: int) -> int:
         f"Cannot parse ranking from language: '{language}'. "
         "Use 'closest', 'furthest', 'largest', 'smallest', or ordinals like '2nd closest', '3rd largest'."
     )
+
+
+# ── rank-clamping utility ─────────────────────────────────────────────────────
+ 
+# Matches an optional ordinal prefix ("2nd ", "3rd ", …) followed by a
+# direction word. Covers all direction words used in INSTRUCTION_TEMPLATES.
+_RANK_TOKEN_RE = re.compile(
+    r'(?:(\d+)(?:st|nd|rd|th)\s+)?(closest|furthest|furtherest|farthest|largest|smallest)',
+    re.IGNORECASE
+)
+ 
+ 
+def _ordinal_str(n: int) -> str:
+    """Return the ordinal string for a 1-based integer (1→'1st', 2→'2nd', …)."""
+    if 11 <= (n % 100) <= 13:          # special case: 11th, 12th, 13th
+        return f"{n}th"
+    suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+ 
+ 
+def clamp_rank_to_list(rank: int, language: str, obj_list: list,
+                       rng: np.random.RandomState = None) -> tuple:
+    n = len(obj_list)
+    # valid if within positive or negative index bounds
+    if -n <= rank < n:
+        return rank, language
+
+    if rng is None:
+        rng = np.random.RandomState(None)
+
+    new_rank = int(rng.randint(0, n))
+
+    new_language = re.sub(r'-?\d+', str(new_rank), language)
+
+    # negative means furtherest
+    if rank < 0:
+        new_rank = -new_rank-1
+
+    print(f"[DEBUG INFO clamp_rank_to_list]:new_rank {new_rank}, new_language {new_language}")
+
+    return new_rank, new_language
+ 
