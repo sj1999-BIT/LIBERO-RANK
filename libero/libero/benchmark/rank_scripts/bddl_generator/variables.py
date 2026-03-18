@@ -69,6 +69,18 @@ OBJECT_SPACING_REQUIREMENTS = {
     "orange_juice": 3,
 }
 
+OBJECT_HEIGHT = {
+    "milk":                         0.10,
+    "moka_pot":                     0.14,
+    "glazed_rim_porcelain_ramekin": 0.02,
+    "tomato_sauce":                 0.04,
+    "alphabet_soup":                0.04,
+    "butter":                       0.01,
+    "ketchup":                      0.11,
+    "orange_juice":                 0.1,
+}
+
+
 
 BOWL_TYPE = "akita_black_bowl"
 
