@@ -8,14 +8,16 @@ This is AI refined version with comments and simplified parameters, though there
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE, INSTRUCTION_TEMPLATES, OBJECT_SIZE_RANK, BOWL_SIZE_RANK, BOWL_POOL, debug_log_print
-from .env_generate_utils import allocate_obj_to_region, parse_cell_region, parse_ranking_index, clamp_rank_to_list
+from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE, INSTRUCTION_TEMPLATES, OBJECT_SIZE_RANK, BOWL_SIZE_RANK, BOWL_POOL
+from .env_generate_utils import allocate_obj_to_region, parse_cell_region, parse_ranking_index, clamp_rank_to_list, _bowl_region_reachable, debug_log_print
 
 import os
 import re
 import random
 import tempfile
 import textwrap
+
+
 import numpy as np
 
 def generate_bddl(
@@ -119,74 +121,94 @@ def generate_bddl(
 # ─────────────────────────────────────────────────────────────────────────────
 def generate_egocentric_pick_task_bddl(
     language: str,
-    object_type: str=None,
-    bow_type: str= None,
+    object_type: str = None,
+    bow_type: str = None,
     seed: Optional[int] = None,
     grid_size: Optional[int] = 20,
     obj_num: int = 10,
     output_path: Optional[str] = None,
     save_bddl: bool = False,
     is_debugging: bool = False,
+    max_place_retries: int = 100,          # ← new
 ) -> dict:
-    """
-    Generates a pick task using an egocentric (camera-relative) depth-rank predicate.
- 
-    All objects are of the same type, sampled from OBJECT_POOL. They are sorted by
-    row index (camera depth), and the target is selected by parsing the ordinal rank
-    from the language instruction (e.g. "closest", "2nd furthest"). The generic token
-    "object" or "item" in the instruction is replaced with the sampled object type.
-    """
     rng = np.random.RandomState(seed)
- 
-    # pick object only if its not provided
+
     if object_type is None:
-        object_type = rng.choice(OBJECT_POOL) 
-
-
+        object_type = rng.choice(OBJECT_POOL)
     if bow_type is None:
-        bow_type = rng.choice(BOWL_POOL) 
+        bow_type = rng.choice(BOWL_POOL)
 
     resolved_language = language.replace("object", object_type).replace("item", object_type)
- 
     obj_num = min(OBJECT_NUM_LIMITS[object_type], obj_num)
     obj_list = [f"{object_type}_{i}" for i in range(obj_num)]
- 
+
+    bowl_instance = f"{bow_type}_0"
+
+
     inst2region, regions = allocate_obj_to_region(
-        obj_list,
+        obj_list,          # pass a copy — allocate mutates the list
         has_bowl=True,
         grid_size=grid_size,
         seed=seed,
         need_middle_object=False,
-        bowl_type=bow_type
+        bowl_type=bow_type,
     )
- 
+
+    debug_log_print("generate_egocentric_pick_task_bddl",
+                    f"inst2region {inst2region}", is_debugging)
+
+    # # ── retry until bowl lands in the reachable place envelope ───────────────
+    # for attempt in range(max_place_retries):
+    #     attempt_seed = None if seed is None else seed + attempt
+    #     inst2region, regions = allocate_obj_to_region(
+    #         list(obj_list),          # pass a copy — allocate mutates the list
+    #         has_bowl=True,
+    #         grid_size=grid_size,
+    #         seed=attempt_seed,
+    #         need_middle_object=False,
+    #         bowl_type=bow_type,
+    #     )
+
+    #     # if _bowl_region_reachable(bowl_instance, inst2region, regions):
+    #     #     break
+
+    #     debug_log_print(
+    #         "generate_egocentric_pick_task_bddl",
+    #         f"attempt {attempt}: bowl at {inst2region.get(bowl_instance)} out of reach, retrying",
+    #         is_debugging,
+    #     )
+    # else:
+    #     raise RuntimeError(
+    #         f"Could not place bowl within reachable envelope after "
+    #         f"{max_place_retries} attempts for '{resolved_language}'."
+    #     )
+    # # ─────────────────────────────────────────────────────────────────────────
+
     sorted_objects = sorted(
         [obj for obj in inst2region if bow_type not in obj],
         key=lambda obj: parse_cell_region(inst2region[obj])[0],
-        reverse=True
+        reverse=True,
     )
- 
+
     rank = parse_ranking_index(resolved_language, obj_num)
     rank, resolved_language = clamp_rank_to_list(rank, resolved_language, sorted_objects, rng)
 
-    debug_log_print(function_name="generate_egocentric_pick_task_bddl", debug_message=f"instruction '{resolved_language}': rank={rank}", is_debugging=is_debugging)
+    debug_log_print("generate_egocentric_pick_task_bddl",
+                    f"instruction '{resolved_language}': rank={rank}", is_debugging)
 
     target_object = sorted_objects[rank]
 
-    debug_log_print(function_name="generate_egocentric_pick_task_bddl", debug_message=f"target={target_object}", is_debugging=is_debugging)
- 
     return generate_bddl(
         resolved_language=resolved_language,
         inst2region=inst2region,
         regions=regions,
         all_objects=obj_list,
         target_object=target_object,
-        bowl_instance=f"{bow_type}_0",
+        bowl_instance=bowl_instance,
         save_bddl=save_bddl,
-        output_path=output_path
+        output_path=output_path,
     )
- 
- 
+
 def generate_egocentric_place_task_bddl(
     language: str,
     object_type: str = None,
@@ -324,6 +346,7 @@ def generate_allocentric_pick_task_bddl(
         regions=regions,
         all_objects=obj_list,
         target_object=target_object,
+        bowl_instance=f"{bow_type}_0",
         save_bddl=save_bddl,
         output_path=output_path
     )
@@ -401,12 +424,11 @@ def generate_allocentric_place_task_bddl(
         output_path=output_path,
     )
  
- 
- 
 
 def generate_middle_pick_task_bddl(
     language: str,
     bow_type: str = None,
+    cur_obj_type: str = None,
     seed: Optional[int] = None,
     grid_size: Optional[int] = 20,
     output_path: Optional[str] = None,
@@ -425,13 +447,19 @@ def generate_middle_pick_task_bddl(
 
     if bow_type is None:
         bow_type = rng.choice(BOWL_POOL)
+
+    if cur_obj_type is None:
+        cur_obj_type = rng.choice(OBJECT_POOL)
  
     obj_num = rng.choice([3, 5, 7])
+
+    while obj_num > OBJECT_NUM_LIMITS[cur_obj_type]:
+        obj_num -= 2
  
     obj_list = []
     obj_count_dict = {}
     for _ in range(obj_num):
-        cur_obj_type = rng.choice(OBJECT_POOL)
+        
         if cur_obj_type in obj_count_dict:
             obj_count_dict[cur_obj_type] += 1
         else:
@@ -498,8 +526,16 @@ def generate_middle_place_task_bddl(
         bow_type = rng.choice(BOWL_POOL)
  
     bowl_num = rng.choice([3, 5, 7])
+
+    while bowl_num > OBJECT_NUM_LIMITS[bow_type]:
+        bowl_num -= 2
  
     target_obj_type = f"{object_type}_0"
+
+    
+    resolved_language = language.replace("object", target_obj_type).replace("item", target_obj_type)
+ 
+
     obj_list = [target_obj_type]
     for i in range(bowl_num):
         obj_list.append(f"{bow_type}_{i}")
@@ -510,6 +546,7 @@ def generate_middle_place_task_bddl(
         grid_size=grid_size,
         seed=seed,
         need_middle_object=True,
+        bowl_type=bow_type
     )
  
     sorted_bowls = sorted(
@@ -525,7 +562,7 @@ def generate_middle_place_task_bddl(
     debug_log_print(function_name="generate_middle_place_task_bddl", debug_message=f"target={middle_bowl}", is_debugging=is_debugging)
  
     return generate_bddl(
-        resolved_language=language,
+        resolved_language=resolved_language,
         inst2region=inst2region,
         regions=regions,
         all_objects=obj_list,
@@ -544,7 +581,7 @@ def generate_pick_by_feature_task_bddl(
     obj_num: int = 5,
     output_path: Optional[str] = None,
     save_bddl: bool = False,
-    target_object_type: str = None,
+    bow_type: str = None,
     is_debugging: bool = False,
 ) -> dict:
     """
@@ -567,11 +604,11 @@ def generate_pick_by_feature_task_bddl(
         grid_size=grid_size,
         seed=seed,
         need_middle_object=False,
-        bowl_type=BOWL_TYPE
+        bowl_type=bow_type
     )
  
     sorted_objects = sorted(
-        [inst for inst in inst2region if BOWL_TYPE not in inst],
+        [inst for inst in inst2region if bow_type not in inst],
         key=lambda inst: OBJECT_SIZE_RANK.index(inst.rsplit("_", 1)[0])
     )
  
@@ -597,6 +634,7 @@ def generate_pick_by_feature_task_bddl(
  
 def generate_place_by_feature_task_bddl(
     language: str,
+    target_obj_type: str = None,
     seed: Optional[int] = None,
     grid_size: Optional[int] = 20,
     obj_num: int = 5,
@@ -618,8 +656,12 @@ def generate_place_by_feature_task_bddl(
     bowl_num = min(len(BOWL_SIZE_RANK), obj_num)
     obj_list = [f"{t}_0" for t in rng.choice(BOWL_SIZE_RANK, size=bowl_num, replace=False)]
  
-    target_obj_type = f"{rng.choice(OBJECT_POOL)}_0"
+    if target_obj_type is None:
+        target_obj_type = f"{rng.choice(OBJECT_POOL)}_0"
+
     obj_list.append(target_obj_type)
+
+    resolved_language = language.replace("object", target_obj_type).replace("item", target_obj_type)
  
     inst2region, regions = allocate_obj_to_region(
         obj_list,
@@ -645,7 +687,7 @@ def generate_place_by_feature_task_bddl(
     debug_log_print(function_name="generate_place_by_feature_task_bddl", debug_message=f"target={target_bowl}", is_debugging=is_debugging)
  
     return generate_bddl(
-        resolved_language=language,
+        resolved_language=resolved_language,
         inst2region=inst2region,
         regions=regions,
         all_objects=obj_list,
@@ -690,22 +732,22 @@ def generate_random_rank_task_bddl(
     if "middle" in lang:
         debug_log_print(function_name="generate_random_rank_task_bddl", debug_message=f"'{language}' → middle pick", is_debugging=is_debugging)
         return generate_middle_pick_task_bddl(
-            language=language, bow_type=bow_type, seed=seed, grid_size=grid_size,
+            language=language,  cur_obj_type=object_type, bow_type=bow_type, seed=seed, grid_size=grid_size,
             output_path=output_path, save_bddl=save_bddl, is_debugging=is_debugging
         )
  
     # ── feature pick/place (largest / smallest) ───────────────────────────────
     if re.search(r"\b(largest|smallest)\b", lang):
-        if re.search(r"\bbowl\b", lang):
+        if re.search(r"(largest|smallest)\s+bowl", lang): 
             debug_log_print(function_name="generate_random_rank_task_bddl", debug_message=f"'{language}' → feature place", is_debugging=is_debugging)
             return generate_place_by_feature_task_bddl(
-                language=language, seed=seed, grid_size=grid_size,
+                language=language, target_obj_type=object_type, seed=seed, grid_size=grid_size,
                 obj_num=num_objects, output_path=output_path, save_bddl=save_bddl, is_debugging=is_debugging
             )
         else:
             debug_log_print(function_name="generate_random_rank_task_bddl", debug_message=f"'{language}' → feature pick", is_debugging=is_debugging)
             return generate_pick_by_feature_task_bddl(
-                language=language, seed=seed, grid_size=grid_size,
+                language=language,  bow_type=bow_type, seed=seed, grid_size=grid_size,
                 obj_num=num_objects, output_path=output_path, save_bddl=save_bddl, is_debugging=is_debugging
             )
  

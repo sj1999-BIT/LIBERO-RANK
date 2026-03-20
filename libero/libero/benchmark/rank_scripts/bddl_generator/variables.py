@@ -41,7 +41,7 @@ BOWL_SIZE_RANK = [
 
 # maximum number of objects of each type to include in the task (including the bowl)
 OBJECT_NUM_LIMITS = {
-    "akita_black_bowl": 7,
+    "akita_black_bowl": 5,
     "milk": 7,
     "moka_pot": 5,
     "glazed_rim_porcelain_ramekin": 6,
@@ -49,7 +49,9 @@ OBJECT_NUM_LIMITS = {
     "alphabet_soup": 7,
     "butter": 7,
     "ketchup": 7,
-    "orange_juice": 7,
+    "orange_juice": 7,    
+    "white_bowl": 5,
+    "plate": 4,
 }
 
 # number of cells that must be between two plates (in any direction) to avoid overlap
@@ -193,14 +195,3 @@ INSTRUCTION_TEMPLATES = [
 ]
 
 
-def debug_log_print(function_name, debug_message, is_debugging: bool=False):
-    if is_debugging:
-        print(f"[DEBUG INFO {function_name}] {debug_message}")
-
-
-"""
-Label is objecttype_index
-however sometimes object may contain more than one word
-"""
-def get_obj_type(label: str):
-    return "_".join(label.split("_")[:-1])

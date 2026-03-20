@@ -13,9 +13,48 @@ import re
 import numpy as np
 
 
+
+def debug_log_print(function_name, debug_message, is_debugging: bool=False):
+    if is_debugging:
+        print(f"[DEBUG INFO {function_name}] {debug_message}")
+
+
+"""
+Label is objecttype_index
+however sometimes object may contain more than one word
+"""
+def get_obj_type(label: str):
+    return "_".join(label.split("_")[:-1])
+
+
+
 ##############################################################################################
 # Table region helper functions to allocate the correct regions for each object
 ##############################################################################################
+
+
+# Reachable place envelope derived from AutoGenPolicy failure analysis.
+# State-5 failures (can't descend to place) dominate when |y| > 0.20;
+# State-3 failures (can't lift to transit height) occur when |x| > 0.10.
+REACHABLE_PLACE_X = (-0.10, 0.10)
+REACHABLE_PLACE_Y = (-0.20, 0.20)
+
+
+def _bowl_region_reachable(bowl_instance: str, inst2region: dict, regions: dict) -> bool:
+    """
+    Returns True if the centre of the bowl's assigned region falls within the
+    gripper's reachable place envelope.  Uses region-centre coordinates as a
+    proxy for the actual bowl world position — valid because make_table_regions
+    already works in table-surface world coordinates.
+    """
+    region_name = inst2region.get(bowl_instance)
+    if region_name is None:
+        return True   # can't check, don't block
+    x0, y0, x1, y1 = regions[region_name]
+    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+    return (REACHABLE_PLACE_X[0] <= cx <= REACHABLE_PLACE_X[1] and
+            REACHABLE_PLACE_Y[0] <= cy <= REACHABLE_PLACE_Y[1])
+
 
 """
 Generate an n×n grid of table regions.
@@ -30,7 +69,7 @@ def make_table_regions(n: int) -> dict:
     xs = np.linspace(x_min, x_max, n + 1)
     ys = np.linspace(-0.25, 0.25, n + 1)
     for i, (x0, x1) in enumerate(zip(xs[:-1], xs[1:])):
-        # if i < 4 or i > n - 4:
+
         if i < 4 or i > n - 5:
             continue 
         for j, (y0, y1) in enumerate(zip(ys[:-1], ys[1:])):
@@ -136,7 +175,8 @@ def allocate_obj_to_region(obj_list,
                            need_middle_object: bool = False,
                            need_allocation_dist: bool = False,
                            allocated_object_type: str = None,
-                           bowl_type: str = BOWL_TYPE
+                           bowl_type: str = BOWL_TYPE,
+                           is_debugging: bool = True,
                            ):
     
     # Create a random number generator with the given seed for reproducibility
@@ -178,20 +218,29 @@ def allocate_obj_to_region(obj_list,
                 else:
                     target_obj_list = [obj for obj in inst2region if bowl_type in obj]
 
+                debug_log_print(function_name="allocate_obj_to_region",
+                        debug_message=f"target_obj_list {target_obj_list} and has_bowl {has_bowl}", is_debugging=is_debugging)
+
                 sorted_by_x = sorted(target_obj_list, key=lambda o: parse_cell_region(inst2region[o])[0])
                 sorted_by_y = sorted(target_obj_list, key=lambda o: parse_cell_region(inst2region[o])[1])
+
+                debug_log_print(function_name="allocate_obj_to_region",
+                        debug_message=f"sorted_by_x {sorted_by_x} and sorted_by_y {sorted_by_y}", is_debugging=is_debugging)
+                
                 mid = len(target_obj_list) // 2
                 if sorted_by_x[mid] != sorted_by_y[mid]:
                     continue  # no single object is the center on both axes, retry
 
-                print(f"[DEBUG INFO allocate_obj_to_region]: found mid object {sorted_by_x[mid]}")
+                debug_log_print(function_name="allocate_obj_to_region",
+                                 debug_message=f"found mid object {sorted_by_x[mid]}", is_debugging=is_debugging)
+ 
 
             # need to make sure all object has different distance to the target object
             if need_allocation_dist:
                 if allocated_object_type is None:
                     raise RuntimeError("allocated object type cannot be None if need_allocation_dist is true")
 
-                surrounding_obj_list = [obj for obj in obj_list if obj is not allocated_object_type]
+                surrounding_obj_list = [obj for obj in obj_list if obj != allocated_object_type]
 
                 ref_x, ref_y = parse_cell_region(inst2region[allocated_object_type])
 

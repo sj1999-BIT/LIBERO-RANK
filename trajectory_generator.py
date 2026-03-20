@@ -170,6 +170,8 @@ class AutoGenPolicy(Policy):
         self.state             = 0
         self.gripper_prev_vel  = 0.0
         self.close_steps       = 0
+        self.open_steps = 10
+        self.remaining_open_steps = self.open_steps
 
     # ── helpers ───────────────────────────────────────────────────────────────
 
@@ -177,10 +179,10 @@ class AutoGenPolicy(Policy):
         """Absolute Z for the safe transit arc."""
         return TABLE_HEIGHT + GRIPPER_LENGTH + TRANSIT_CLEARANCE
 
-    def _is_xy_reached(self, cur_pos, target_pos, threshold=0.02):
+    def _is_xy_reached(self, cur_pos, target_pos, threshold=0.025):
         return all(abs(cur_pos[i] - target_pos[i]) <= threshold for i in range(2))
 
-    def _is_z_reached(self, cur_z, target_z, threshold=0.005):
+    def _is_z_reached(self, cur_z, target_z, threshold=0.025):
         return abs(cur_z - target_z) <= threshold
 
     # ── state transitions ─────────────────────────────────────────────────────
@@ -238,7 +240,7 @@ class AutoGenPolicy(Policy):
         # ── 5: Z lowered to place height ──────────────────────────────────────
         if self.state == 5:
             if self._is_z_reached(cur[2], plc[2], threshold=0.02):
-                if self._is_xy_reached(cur, plc):
+                # if self._is_xy_reached(cur, plc):
                     debug_log_print("AutoGenPolicy", "5→6: at place height, opening gripper", self.is_debugging)
                     self.state = 6
             return
@@ -285,7 +287,8 @@ class AutoGenPolicy(Policy):
         # ── 3: DIAGONAL ARC — lift Z while sliding XY toward place ────────────
         elif self.state == 3:
             action[2]  = th - cur[2]
-            action[:2] = plc[:2] - cur[:2]
+            # action[:2] = plc[:2] - cur[:2]
+            action[:2] = 0.0
             action[6]  = GRIPPER_CLOSE
             debug_log_print("AutoGenPolicy",
                 f"state=3 | lifting+sliding | Δz={action[2]:.4f} | target_th={th:.4f}", self.is_debugging)
@@ -309,7 +312,9 @@ class AutoGenPolicy(Policy):
         # ── 6: open gripper, retract upward ───────────────────────────────────
         elif self.state == 6:
             action[6]  = GRIPPER_OPEN
-            action[2]  = th - cur[2]
+            self.open_steps -= 1
+            if self.open_steps <= 0:
+                action[2]  = th - cur[2]
             debug_log_print("AutoGenPolicy",
                 "state=6 | opening gripper & retracting", self.is_debugging)
 
@@ -321,6 +326,7 @@ class AutoGenPolicy(Policy):
         self.state = 0
         self.gripper_prev_vel  = 0.0
         self.close_steps = 0
+        self.remaining_open_steps = self.open_steps
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Trajectory generation
@@ -363,6 +369,8 @@ def generate_trajectory(
         target_pick_label  = result["target_object"]
         target_place_label = result["target_place"]
 
+        actual_object_type = get_obj_type(target_pick_label)
+
         env = OffScreenRenderEnv(
             bddl_file_name=result["bddl_path"],
             robots=["Panda"],
@@ -374,14 +382,15 @@ def generate_trajectory(
         env.seed(seed)
         obs = env.reset()
 
-        params       = OBJECT_PICK_PARAMS[object_type]
+        params       = OBJECT_PICK_PARAMS[actual_object_type]
         pick_pos     = obs[f"{target_pick_label}_pos"] + np.array([params[0], params[1], 0.0])
-        place_offset = OBJECT_PLACE_OFFSET[object_type]
-        place_pos    = obs[f"{target_place_label}_pos"] + BOWL_PLACE_POS[bow_type] + place_offset
+
+        place_pos    = obs[f"{target_place_label}_pos"] + BOWL_PLACE_POS[bow_type] + OBJECT_PLACE_OFFSET[actual_object_type]
 
         original_gripper_pos = obs["robot0_eef_pos"]
         frames  = []
         success = False                # ← track outcome
+        
 
         for step in range(trajectory_len):
             cur_gripper_pos  = obs["robot0_eef_pos"]
@@ -415,13 +424,13 @@ def generate_trajectory(
 
             if done:
                 success = (reward >= 1.0)   # LIBERO convention: reward=1 on success
-                break
+                # break
 
         # ── log this episode ──────────────────────────────────────────────────
         if logger is not None:
             logger.log_episode(
                 instruction=actual_instruction,
-                object_type=object_type,
+                object_type=actual_object_type,
                 bowl_type=bow_type,
                 seed=seed,
                 success=success,
@@ -492,93 +501,99 @@ if __name__ == "__main__":
         # egocentric pick tasks: many same object + 1 bowl (16 tasks)
         "Pick the closest object and place in the bowl.",
         "Pick the furtherest object and place in the bowl.",
-        "Pick the 1st closest object and place in the bowl.",
-        "Pick the 2nd closest object and place in the bowl.",
-        "Pick the 3rd closest object and place in the bowl.",
-        "Pick the 4th closest object and place in the bowl.",
-        "Pick the 5th closest object and place in the bowl.",
-        "Pick the 6th closest object and place in the bowl.",
-        "Pick the 7th closest object and place in the bowl.",
-        "Pick the 1st furtherest object and place in the bowl.",
-        "Pick the 2nd furtherest object and place in the bowl.",
-        "Pick the 3rd furtherest object and place in the bowl.",
-        "Pick the 4th furtherest object and place in the bowl.",
-        "Pick the 5th furtherest object and place in the bowl.",
-        "Pick the 6th furtherest object and place in the bowl.",
-        "Pick the 7th furtherest object and place in the bowl.",
+        # "Pick the 1st closest object and place in the bowl.",
+        # "Pick the 2nd closest object and place in the bowl.",
+        # "Pick the 3rd closest object and place in the bowl.",
+        # "Pick the 4th closest object and place in the bowl.",
+        # "Pick the 5th closest object and place in the bowl.",
+        # "Pick the 6th closest object and place in the bowl.",
+        # "Pick the 7th closest object and place in the bowl.",
+        # "Pick the 1st furtherest object and place in the bowl.",
+        # "Pick the 2nd furtherest object and place in the bowl.",
+        # "Pick the 3rd furtherest object and place in the bowl.",
+        # "Pick the 4th furtherest object and place in the bowl.",
+        # "Pick the 5th furtherest object and place in the bowl.",
+        # "Pick the 6th furtherest object and place in the bowl.",
+        # "Pick the 7th furtherest object and place in the bowl.",
+
         # egocentric place tasks: 1 object + many bowls (16 tasks)
         "Pick the object and place in the closest bowl.",
         "Pick the object and place in the furtherest bowl.",
-        "Pick the object and place in the 1st closest bowl.",
-        "Pick the object and place in the 2nd closest bowl.",
-        "Pick the object and place in the 3rd closest bowl.",
-        "Pick the object and place in the 4th closest bowl.",
-        "Pick the object and place in the 5th closest bowl.",
-        "Pick the object and place in the 6th closest bowl.",
-        "Pick the object and place in the 7th closest bowl.",
-        "Pick the object and place in the 1st furtherest bowl.",
-        "Pick the object and place in the 2nd furtherest bowl.",
-        "Pick the object and place in the 3rd furtherest bowl.",
-        "Pick the object and place in the 4th furtherest bowl.",
-        "Pick the object and place in the 5th furtherest bowl.",
-        "Pick the object and place in the 6th furtherest bowl.",
-        "Pick the object and place in the 7th furtherest bowl.",
+        # "Pick the object and place in the 1st closest bowl.",
+        # "Pick the object and place in the 2nd closest bowl.",
+        # "Pick the object and place in the 3rd closest bowl.",
+        # "Pick the object and place in the 4th closest bowl.",
+        # "Pick the object and place in the 5th closest bowl.",
+        # "Pick the object and place in the 6th closest bowl.",
+        # "Pick the object and place in the 7th closest bowl.",
+        # "Pick the object and place in the 1st furtherest bowl.",
+        # "Pick the object and place in the 2nd furtherest bowl.",
+        # "Pick the object and place in the 3rd furtherest bowl.",
+        # "Pick the object and place in the 4th furtherest bowl.",
+        # "Pick the object and place in the 5th furtherest bowl.",
+        # "Pick the object and place in the 6th furtherest bowl.",
+        # "Pick the object and place in the 7th furtherest bowl.",
+
         # allocentric pick: many same object + 1 bowl (16 tasks)
         "Pick the object closest to the bowl and place in the bowl.",
         "Pick the object furtherest to the bowl and place in the bowl.",
-        "Pick the 1st object closest to the bowl and place in the bowl.",
-        "Pick the 2nd object closest to the bowl and place in the bowl.",
-        "Pick the 3rd object closest to the bowl and place in the bowl.",
-        "Pick the 4th object closest to the bowl and place in the bowl.",
-        "Pick the 5th object closest to the bowl and place in the bowl.",
-        "Pick the 6th object closest to the bowl and place in the bowl.",
-        "Pick the 7th object closest to the bowl and place in the bowl.",
-        "Pick the 1st object furtherest to the bowl and place in the bowl.",
-        "Pick the 2nd object furtherest to the bowl and place in the bowl.",
-        "Pick the 3rd object furtherest to the bowl and place in the bowl.",
-        "Pick the 4th object furtherest to the bowl and place in the bowl.",
-        "Pick the 5th object furtherest to the bowl and place in the bowl.",
-        "Pick the 6th object furtherest to the bowl and place in the bowl.",
-        "Pick the 7th object furtherest to the bowl and place in the bowl.",
+        # "Pick the 1st object closest to the bowl and place in the bowl.",
+        # "Pick the 2nd object closest to the bowl and place in the bowl.",
+        # "Pick the 3rd object closest to the bowl and place in the bowl.",
+        # "Pick the 4th object closest to the bowl and place in the bowl.",
+        # "Pick the 5th object closest to the bowl and place in the bowl.",
+        # "Pick the 6th object closest to the bowl and place in the bowl.",
+        # "Pick the 7th object closest to the bowl and place in the bowl.",
+        # "Pick the 1st object furtherest to the bowl and place in the bowl.",
+        # "Pick the 2nd object furtherest to the bowl and place in the bowl.",
+        # "Pick the 3rd object furtherest to the bowl and place in the bowl.",
+        # "Pick the 4th object furtherest to the bowl and place in the bowl.",
+        # "Pick the 5th object furtherest to the bowl and place in the bowl.",
+        # "Pick the 6th object furtherest to the bowl and place in the bowl.",
+        # "Pick the 7th object furtherest to the bowl and place in the bowl.",
+
         # allocentric place: 1 object + many bowls (16 tasks)
         "Pick the object and place in the bowl closest to it.",
         "Pick the object and place in the bowl furtherest from it.",
-        "Pick the object and place in the 1st bowl closest to it.",
-        "Pick the object and place in the 2nd bowl closest to it.",
-        "Pick the object and place in the 3rd bowl closest to it.",
-        "Pick the object and place in the 4th bowl closest to it.",
-        "Pick the object and place in the 5th bowl closest to it.",
-        "Pick the object and place in the 6th bowl closest to it.",
-        "Pick the object and place in the 7th bowl closest to it.",
-        "Pick the object and place in the 1st bowl furtherest from it.",
-        "Pick the object and place in the 2nd bowl furtherest from it.",
-        "Pick the object and place in the 3rd bowl furtherest from it.",
-        "Pick the object and place in the 4th bowl furtherest from it.",
-        "Pick the object and place in the 5th bowl furtherest from it.",
-        "Pick the object and place in the 6th bowl furtherest from it.",
-        "Pick the object and place in the 7th bowl furtherest from it.",
+        # "Pick the object and place in the 1st bowl closest to it.",
+        # "Pick the object and place in the 2nd bowl closest to it.",
+        # "Pick the object and place in the 3rd bowl closest to it.",
+        # "Pick the object and place in the 4th bowl closest to it.",
+        # "Pick the object and place in the 5th bowl closest to it.",
+        # "Pick the object and place in the 6th bowl closest to it.",
+        # "Pick the object and place in the 7th bowl closest to it.",
+        # "Pick the object and place in the 1st bowl furtherest from it.",
+        # "Pick the object and place in the 2nd bowl furtherest from it.",
+        # "Pick the object and place in the 3rd bowl furtherest from it.",
+        # "Pick the object and place in the 4th bowl furtherest from it.",
+        # "Pick the object and place in the 5th bowl furtherest from it.",
+        # "Pick the object and place in the 6th bowl furtherest from it.",
+        # "Pick the object and place in the 7th bowl furtherest from it.",
+
         # pick by feature: many different objects + 1 bowl (12 tasks)
         "Pick the largest object and place in the bowl.",
         "Pick the smallest object and place in the bowl.",
-        "Pick the 1st largest object and place in the bowl.",
-        "Pick the 2nd largest object and place in the bowl.",
-        "Pick the 3rd largest object and place in the bowl.",
-        "Pick the 4th largest object and place in the bowl.",
-        "Pick the 5th largest object and place in the bowl.",
-        "Pick the 1st smallest object and place in the bowl.",
-        "Pick the 2nd smallest object and place in the bowl.",
-        "Pick the 3rd smallest object and place in the bowl.",
-        "Pick the 4th smallest object and place in the bowl.",
-        "Pick the 5th smallest object and place in the bowl.",
+        # "Pick the 1st largest object and place in the bowl.",
+        # "Pick the 2nd largest object and place in the bowl.",
+        # "Pick the 3rd largest object and place in the bowl.",
+        # "Pick the 4th largest object and place in the bowl.",
+        # "Pick the 5th largest object and place in the bowl.",
+        # "Pick the 1st smallest object and place in the bowl.",
+        # "Pick the 2nd smallest object and place in the bowl.",
+        # "Pick the 3rd smallest object and place in the bowl.",
+        # "Pick the 4th smallest object and place in the bowl.",
+        # "Pick the 5th smallest object and place in the bowl.",
+
         # place by feature: 1 object + different bowls (8 tasks)
         "Pick the object and place in the largest bowl.",
         "Pick the object and place in the smallest bowl.",
-        "Pick the object and place in the 1st largest bowl.",
-        "Pick the object and place in the 2nd largest bowl.",
-        "Pick the object and place in the 3rd largest bowl.",
-        "Pick the object and place in the 1st smallest bowl.",
-        "Pick the object and place in the 2nd smallest bowl.",
-        "Pick the object and place in the 3rd smallest bowl.",
+        # "Pick the object and place in the 1st largest bowl.",
+        # "Pick the object and place in the 2nd largest bowl.",
+        # "Pick the object and place in the 3rd largest bowl.",
+        # "Pick the object and place in the 1st smallest bowl.",
+        # "Pick the object and place in the 2nd smallest bowl.",
+        # "Pick the object and place in the 3rd smallest bowl.",
+
         # middle pick/place (2 tasks)
         "Pick the object in the middle and place in the bowl.",
         "Pick the object and place in the bowl in the middle.",
@@ -594,8 +609,8 @@ if __name__ == "__main__":
         "milk":                          np.array([0.0,  0.0,  0.09]),
         "moka_pot":                      np.array([0.0,  0.0,  0.14]),
         "glazed_rim_porcelain_ramekin":  np.array([0.0,  0.03, 0.02]),
-        "tomato_sauce":                  np.array([0.0,  0.0,  0.04]),
-        "alphabet_soup":                 np.array([0.0,  0.0,  0.04]),
+        "tomato_sauce":                  np.array([0.0,  0.0,  0.03]),
+        "alphabet_soup":                 np.array([0.0,  0.0,  0.03]),
         "butter":                        np.array([0.0,  0.0,  0.0]),
         "ketchup":                       np.array([0.0,  0.0,  0.11]),
         "orange_juice":                  np.array([0.0,  0.0,  0.10]),
@@ -609,15 +624,16 @@ if __name__ == "__main__":
     #   -y relative to the gripper centre; negate the pick y-offset here to
     #   correct the landing position.
     #   Tune z_offset per-object if the drop height needs adjustment.
+    
     OBJECT_PLACE_OFFSET = {
-        "milk":                          np.array([0.0,   0.0,  0.0]),
-        "moka_pot":                       np.array([0.0,   0.0,  0.0]),
-        "glazed_rim_porcelain_ramekin":  np.array([0.0,  -0.03, 0.0]),
-        "tomato_sauce":                  np.array([0.0,   0.0,  0.0]),
-        "alphabet_soup":                 np.array([0.0,   0.0,  0.0]),
-        "butter":                        np.array([0.0,   0.0,  0.0]),
-        "ketchup":                       np.array([0.0,   0.0,  0.0]),
-        "orange_juice":                  np.array([0.0,   0.0,  0.0]),
+        "milk":                          np.array([0.0,   0.0,  0.03]),
+        "moka_pot":                       np.array([0.0,   0.0,  0.08]),
+        "glazed_rim_porcelain_ramekin":  np.array([0.0,  0.03, 0.01]),
+        "tomato_sauce":                  np.array([0.0,   0.0,  0.01]),
+        "alphabet_soup":                 np.array([0.0,   0.0,  0.01]),
+        "butter":                        np.array([0.0,   0.0,  0.01]),
+        "ketchup":                       np.array([0.0,   0.0,  0.05]),
+        "orange_juice":                  np.array([0.0,   0.0,  0.04]),
     }
 
     BOWL_PLACE_POS = {
@@ -638,7 +654,9 @@ if __name__ == "__main__":
     ]
 
     BOWL_POOL = [
+        "akita_black_bowl",
         "white_bowl",
+        "plate"
     ]
 
     trajectory_output_path = (
@@ -649,9 +667,15 @@ if __name__ == "__main__":
     log_dir = os.path.join(trajectory_output_path, "logs")
     logger  = TrajectoryLogger(log_dir=log_dir)
 
-    for testing_instruction in INSTRUCTION_TEMPLATES:
-        for testing_object_type in OBJECT_POOL:
-            for testing_bowl_type in BOWL_POOL:
+    
+    for testing_object_type in OBJECT_POOL:
+
+        for testing_bowl_type in BOWL_POOL:
+
+            cur_trajectory_output_path = os.path.join(trajectory_output_path, testing_object_type, testing_bowl_type)
+            os.makedirs(cur_trajectory_output_path, exist_ok=True)
+
+            for testing_instruction in INSTRUCTION_TEMPLATES:
                 policy = AutoGenPolicy(is_debugging=True)
                 generate_trajectory(
                     instruction=testing_instruction,
@@ -664,10 +688,10 @@ if __name__ == "__main__":
                     render_video=False,
                     is_log_printed=True,
                     is_save_video=True,
-                    save_video_path=trajectory_output_path,
+                    save_video_path=cur_trajectory_output_path,
                     env_grid_len=4,
                     logger=logger,          # ← pass it in
                 )
 
-    logger.print_summary()
-    logger.save()
+        logger.print_summary()
+        logger.save()
