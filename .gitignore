@@ -17,3 +17,5 @@ trajectory_data/
 *.mp4
 libero.egg-info/
 .vscode/
+*.out
+*.bddl

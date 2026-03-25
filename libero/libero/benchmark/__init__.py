@@ -437,9 +437,10 @@ class LIBERO_RANK(Benchmark):
                 seed=seed,
                 num_objects=self.num_objects,
                 grid_size=self.grid_size,
-                object_types=object_type,
+                object_type=object_type,
                 output_path=output_path,
                 save_bddl=True,
+                is_debugging=True
             )
 
             if result is None:
@@ -452,6 +453,7 @@ class LIBERO_RANK(Benchmark):
                 bddl_path=result["bddl_path"],
                 target_object=result["target_object"],
             )
+
             self.tasks.append(task)
             print(f"[DEBUG INFO LIBERO_RANK.generate_tasks]： task {i:03d} [{category}]: {language}")
 

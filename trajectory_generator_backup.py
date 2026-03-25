@@ -57,11 +57,8 @@ import sys
 sys.path.insert(0, libero_path)
 
 from libero.libero.benchmark.rank_scripts.bddl_generator import (
-    generate_random_rank_task_bddl, debug_log_print, get_obj_type,
-    OBJECT_POOL, BOWL_POOL
+    generate_random_rank_task_bddl, debug_log_print, get_obj_type
 )
-
-
 from random import randint
 import numpy as np
 import cv2
@@ -69,7 +66,34 @@ from tqdm import tqdm
 from libero.libero.envs import OffScreenRenderEnv
 from trajectory_logger import TrajectoryLogger
 
-import robosuite.utils.transform_utils as T
+# ── gripper constants ──────────────────────────────────────────────────────────
+GRIPPER_OPEN        = -1.0
+GRIPPER_CLOSE       =  1.0
+GRIP_HOLD_STEPS     = 10       # steps to dwell while closing before checking stall
+GRIPPER_LENGTH      = 0.0
+
+# Fixed clearance height above the table used during transit.
+# Raised to 0.40 to safely clear tallest object (moka_pot ~0.14m)
+# plus grasped item height and gripper body.
+TRANSIT_CLEARANCE   = 0.40     # metres above TABLE_HEIGHT
+
+# State-1 Z threshold (Bug 1 fix):
+# The P-controller (action = delta * 10) converges asymptotically; 0.005 is
+# too tight and causes 60+ crawling steps because the small residual action is
+# absorbed by joint damping.  0.015 exits promptly while still landing the
+# gripper close enough to the object for a reliable grasp.
+PICK_Z_THRESHOLD    = 0.015
+
+# ── trajectory quality check constants ────────────────────────────────────────
+# Check 2: Z-stall detection in state 5
+Z_STALL_THRESHOLD   = 0.002    # metres per step — below this counts as stalled
+Z_STALL_STEPS_MAX   = 8        # consecutive stalled steps before forcing 5→6
+
+# Check 3: Object-stuck detection after gripper opens
+OBJECT_STUCK_Z_RISE = 0.03     # metres — if object rises more than this, it's stuck
+
+# Retry budget per (instruction, object_type, bowl_type) combination
+MAX_RETRIES         = 20
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -77,10 +101,8 @@ import robosuite.utils.transform_utils as T
 # ──────────────────────────────────────────────────────────────────────────────
 
 def prep_for_display(img, instruction=None, lineLen=30):
-    # only perform bgr to rgb if its 3 channels
-    if img.shape[-1] == 3:
-        rgb = img[..., ::-1]
-    rgb = np.flipud(rgb).copy()
+    bgr = img[..., ::-1]
+    bgr = np.flipud(bgr).copy()
     if instruction is not None:
         words = instruction.split()
         lines, line = [], []
@@ -92,9 +114,9 @@ def prep_for_display(img, instruction=None, lineLen=30):
         if line:
             lines.append(" ".join(line))
         for i, text in enumerate(lines):
-            cv2.putText(rgb, text, (5, 15 + i * 18),
+            cv2.putText(bgr, text, (5, 15 + i * 18),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
-    return rgb
+    return bgr
 
 
 def create_title(cur_instruction):
@@ -135,15 +157,6 @@ class Policy:
 # ──────────────────────────────────────────────────────────────────────────────
 # AutoGenPolicy
 # ──────────────────────────────────────────────────────────────────────────────
-
-
-# ── add to constants ──────────────────────────────────────────────────────────
-STATE_TIMEOUT_STEPS = {
-    0: 100,   # XY alignment — should converge in <15 steps normally
-    1: 100,   # Z lowering — same
-    4: 100,   # XY alignment to place target
-    5: 100,   # Z lowering to place height (already has stall guard, but belt+suspenders)
-}
 
 class AutoGenPolicy(Policy):
     """
@@ -196,14 +209,9 @@ class AutoGenPolicy(Policy):
         self.prev_z        = None
         self.z_stalled     = False   # exposed to caller
 
-
-        # Check 3: per-state timeout
-        self.state_step_counter = 0
-        self.unreachable        = False   # exposed to caller
-
     # ── helpers ───────────────────────────────────────────────────────────────
 
-    def _transit_height(self):
+    def _transit_height(self, state_dict):
         """Absolute Z for the safe transit arc."""
         return TABLE_HEIGHT + GRIPPER_LENGTH + TRANSIT_CLEARANCE
 
@@ -219,15 +227,13 @@ class AutoGenPolicy(Policy):
         cur  = state_dict["cur_gripper_pos"]
         pick = state_dict["pick_pos"]
         plc  = state_dict["place_pos"]
-        th   = self._transit_height()
+        th   = self._transit_height(state_dict)
 
-        self.state_step_counter += 1
         # ── 0: XY aligned to pick target ──────────────────────────────────────
         if self.state == 0:
             if self._is_xy_reached(cur, pick):
                 debug_log_print("AutoGenPolicy", "0→1: XY aligned to pick", self.is_debugging)
                 self.state = 1
-                self.state_step_counter = 0   # reset on any transition
                 return
 
         # ── 1: Z lowered to pick height ───────────────────────────────────────
@@ -239,7 +245,6 @@ class AutoGenPolicy(Policy):
             if self._is_z_reached(cur[2], pick_z, threshold=PICK_Z_THRESHOLD):
                 debug_log_print("AutoGenPolicy", "1→2: at pick height", self.is_debugging)
                 self.state = 2
-                self.state_step_counter = 0   # reset on any transition
                 return
 
         # ── 2: gripper stalls → object grabbed ───────────────────────────────
@@ -251,7 +256,6 @@ class AutoGenPolicy(Policy):
                     debug_log_print("AutoGenPolicy", "2→3: gripper stalled, object grabbed", self.is_debugging)
                     self.close_steps = 0
                     self.state = 3
-                    self.state_step_counter = 0   # reset on any transition
                     return
                 self.gripper_prev_vel = vel
 
@@ -260,7 +264,6 @@ class AutoGenPolicy(Policy):
             if self._is_z_reached(cur[2], th, threshold=0.02):
                 debug_log_print("AutoGenPolicy", "3→4: at transit height, moving to place XY", self.is_debugging)
                 self.state = 4
-                self.state_step_counter = 0   # reset on any transition
                 return
 
         # ── 4: XY aligned to place target ─────────────────────────────────────
@@ -268,7 +271,6 @@ class AutoGenPolicy(Policy):
             if self._is_xy_reached(cur, plc):
                 debug_log_print("AutoGenPolicy", "4→5: XY aligned to place target", self.is_debugging)
                 self.state = 5
-                self.state_step_counter = 0   # reset on any transition
                 # Reset Z-stall tracker fresh on entering state 5
                 self.z_stall_steps = 0
                 self.prev_z        = None
@@ -303,25 +305,10 @@ class AutoGenPolicy(Policy):
                 # if self._is_xy_reached(cur, plc):
                     debug_log_print("AutoGenPolicy", "5→6: at place height, opening gripper", self.is_debugging)
                     self.state = 6
-                    self.state_step_counter = 0   # reset on any transition
-                    
             return
 
         # ── 6: gripper open, done ─────────────────────────────────────────────
         # (terminal state — no further transitions needed)
-
-        # ── Check 3: state timeout ────────────────────────────────────────────
-        timeout = STATE_TIMEOUT_STEPS.get(self.state)
-
-        if timeout is not None and self.state_step_counter >= timeout:
-            debug_log_print(
-                "AutoGenPolicy",
-                f"CHECK 4 FAILED: state {self.state} timed out after "
-                f"{self.state_step_counter} steps — object unreachable",
-                self.is_debugging,
-            )
-            self.unreachable = True
-            
 
     # ── action generation ─────────────────────────────────────────────────────
 
@@ -332,7 +319,7 @@ class AutoGenPolicy(Policy):
         pick = state_dict["pick_pos"]
         plc  = state_dict["place_pos"]
         oh   = state_dict["object_height"]
-        th   = self._transit_height()
+        th   = self._transit_height(state_dict)
 
         action = np.zeros(7)
 
@@ -407,123 +394,14 @@ class AutoGenPolicy(Policy):
         self.prev_z            = None
         self.z_stalled         = False
 
-        self.state_step_counter = 0
-        self.unreachable        = False
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Trajectory generation
 # ──────────────────────────────────────────────────────────────────────────────
 
-
-# ── gripper constants ──────────────────────────────────────────────────────────
-GRIPPER_OPEN        = -1.0
-GRIPPER_CLOSE       =  1.0
-GRIP_HOLD_STEPS     = 10       # steps to dwell while closing before checking stall
-GRIPPER_LENGTH      = 0.0
-
-# Fixed clearance height above the table used during transit.
-# Raised to 0.40 to safely clear tallest object (moka_pot ~0.14m)
-# plus grasped item height and gripper body.
-TRANSIT_CLEARANCE   = 0.40     # metres above TABLE_HEIGHT
-
-# State-1 Z threshold (Bug 1 fix):
-# The P-controller (action = delta * 10) converges asymptotically; 0.005 is
-# too tight and causes 60+ crawling steps because the small residual action is
-# absorbed by joint damping.  0.015 exits promptly while still landing the
-# gripper close enough to the object for a reliable grasp.
-PICK_Z_THRESHOLD    = 0.015
-
-# ── trajectory quality check constants ────────────────────────────────────────
-# Check 2: Z-stall detection in state 5
-Z_STALL_THRESHOLD   = 0.002    # metres per step — below this counts as stalled
-Z_STALL_STEPS_MAX   = 8        # consecutive stalled steps before forcing 5→6
-
-# Check 3: Object-stuck detection after gripper opens
-OBJECT_STUCK_Z_RISE = 0.03     # metres — if object rises more than this, it's stuck
-
-# Retry budget per (instruction, object_type, bowl_type) combination
-MAX_RETRIES         = 50
-
-# height of tabletop for manipulation
-TABLE_HEIGHT = 0.9
-
-
-
-INSTRUCTION_TEMPLATES = [
-    # egocentric pick tasks: many same object + 1 bowl
-    "Pick the closest object and place in the bowl.",
-    "Pick the furtherest object and place in the bowl.",
-    # egocentric place tasks: 1 object + many bowls
-    "Pick the object and place in the closest bowl.",
-    "Pick the object and place in the furtherest bowl.",
-    # allocentric pick: many same object + 1 bowl
-    "Pick the object closest to the bowl and place in the bowl.",
-    "Pick the object furtherest to the bowl and place in the bowl.",
-    # allocentric place: 1 object + many bowls
-    "Pick the object and place in the bowl closest to it.",
-    "Pick the object and place in the bowl furtherest from it.",
-    # pick by feature: many different object + 1 bowl
-    "Pick the largest object and place in the bowl.",
-    "Pick the smallest object and place in the bowl.",
-    # place by feature: 1 object + different bowl
-    "Pick the object and place in the largest bowl.",
-    "Pick the object and place in the smallest bowl.",
-    # middle pick: 3 different object with col restriction + one bowl
-    "Pick the object in the middle and place in the bowl."
-    "Pick the object and place in the bowl in the middle."
-]
-
-
-# OBJECT_PICK_PARAMS  [x_offset, y_offset, height]
-#   x/y: lateral offset from the observed object centre to the gripper
-#        approach point.
-#   height: z above the table surface at which the gripper closes.
-OBJECT_PICK_PARAMS = {
-    "milk":                          np.array([0.0,  0.0,  0.09]),
-    "moka_pot":                      np.array([0.0,  0.0,  0.14]),
-    "glazed_rim_porcelain_ramekin":  np.array([0.0,  0.03, 0.02]),
-    "tomato_sauce":                  np.array([0.0,  0.0,  0.03]),
-    "alphabet_soup":                 np.array([0.0,  0.0,  0.03]),
-    "butter":                        np.array([0.0,  0.0,  0.0]),
-    "ketchup":                       np.array([0.0,  0.0,  0.11]),
-    "orange_juice":                  np.array([0.0,  0.0,  0.10]),
-}
-
-
-# OBJECT_PLACE_OFFSET  [x_offset, y_offset, z_offset]
-#   Added to place_pos to compensate for how the object sits in the gripper
-#   after grasping so the object lands centred over the target bowl.
-#   For centred grasps this is [0, 0, 0].
-#   For the ramekin the gripper contacts the rim at +y, so the object hangs
-#   -y relative to the gripper centre; negate the pick y-offset here to
-#   correct the landing position.
-#   Tune z_offset per-object if the drop height needs adjustment.
-
-OBJECT_PLACE_OFFSET = {
-    "milk":                          np.array([0.0,   0.0,  0.03]),
-    "moka_pot":                      np.array([0.0,   0.0,  0.08]),
-    "glazed_rim_porcelain_ramekin":  np.array([0.0,  0.03, 0.01]),
-    "tomato_sauce":                  np.array([0.0,   0.0,  0.01]),
-    "alphabet_soup":                 np.array([0.0,   0.0,  0.01]),
-    "butter":                        np.array([0.0,   0.0,  0.01]),
-    "ketchup":                       np.array([0.0,   0.0,  0.05]),
-    "orange_juice":                  np.array([0.0,   0.0,  0.04]),
-}
-
-BOWL_PLACE_POS = {
-    "white_bowl":       np.array([0.0, 0.0, 0.03]),
-    "akita_black_bowl": np.array([0.0, 0.0, 0.03]),
-    "plate":            np.array([0.0, 0.0, 0.03]),
-}
-
-
-
 def generate_trajectory(
     instruction,
     policy: Policy,
-    camera_heights=256,
-    camera_widths=256,   
     object_type=None,
     bow_type=None,
     num_objects=10,
@@ -540,7 +418,6 @@ def generate_trajectory(
     total_env = env_grid_len * env_grid_len
     total_trajectory = []
     results = []
-    data_collected = []
 
     for cur_env in range(total_env):
 
@@ -563,33 +440,21 @@ def generate_trajectory(
             target_place_label = result["target_place"]
 
             actual_object_type = get_obj_type(target_pick_label)
-            actual_bow_type    = get_obj_type(target_place_label)   # ← add this
 
             env = OffScreenRenderEnv(
                 bddl_file_name=result["bddl_path"],
                 robots=["Panda"],
-                camera_heights=camera_heights,
-                camera_widths=camera_widths,    
-                use_camera_obs=True,
-                camera_names=["robot0_eye_in_hand", "agentview"],
-                camera_depths=True,   # ← add
+                camera_heights=256,
+                camera_widths=256,
             )
-
 
             seed = randint(0, 1000)
             env.seed(seed)
             obs = env.reset()
 
-            # ── DIM CHECK: available obs keys ──────────────────────────────
-            print("\n[DIM CHECK] Available obs keys:")
-            for k, v in obs.items():
-                v_arr = np.array(v)
-                print(f"  obs['{k}'] shape: {v_arr.shape}, dtype: {v_arr.dtype}")
-            print()
-
             params    = OBJECT_PICK_PARAMS[actual_object_type]
             pick_pos  = obs[f"{target_pick_label}_pos"] + np.array([params[0], params[1], 0.0])
-            place_pos = obs[f"{target_place_label}_pos"] + BOWL_PLACE_POS[actual_bow_type] + OBJECT_PLACE_OFFSET[actual_object_type]
+            place_pos = obs[f"{target_place_label}_pos"] + BOWL_PLACE_POS[bow_type] + OBJECT_PLACE_OFFSET[actual_object_type]
 
             original_gripper_pos = obs["robot0_eef_pos"]
             frames  = []
@@ -600,26 +465,6 @@ def generate_trajectory(
             # watch for it rising once the arm retracts.
             placed_object_z = None
             object_stuck    = False
-
-
-            # ── VARIABLES FOR DATA COLLECTION ──────────────────────────────────────────────────
-            model_xml_initial = env.sim.model.get_xml()
-            init_state        = env.sim.get_state().flatten()
-            all_states        = []
-            all_actions       = []
-            all_robot_states  = []
-            all_ee_states     = []
-            all_gripper_states= []
-            all_joint_states  = []
-            all_rewards = []
-            agentview_images = []
-            eye_in_hand_images = []
-            agentview_depths    = []      # ← add
-            eye_in_hand_depths  = []      # ← add
-
-            CAP_INDEX = 0
-            # ───────────────────────────────────────────────────────────────
-
 
             for step in range(trajectory_len):
                 cur_gripper_pos  = obs["robot0_eef_pos"]
@@ -633,14 +478,7 @@ def generate_trajectory(
                 }
 
                 action_7dim = policy.get_action(input_state_dict)
-
-                if policy.unreachable:
-                    break
-
-
                 obs, reward, done, info = env.step(action_7dim)
-
-
 
                 if "agentview_image" in obs:
                     frames.append(prep_for_display(obs["agentview_image"], actual_instruction))
@@ -681,36 +519,7 @@ def generate_trajectory(
 
                 if done:
                     success = (reward >= 1.0)   # LIBERO convention: reward=1 on success
-                    break
-                else:
-                    # ── ADD THIS BLOCK (after step, same cap logic as before) ──
-                    if step >= CAP_INDEX:
-                        all_actions.append(action_7dim)
-                        all_gripper_states.append(obs["robot0_gripper_qpos"])
-                        all_joint_states.append(obs["robot0_joint_pos"])
-                        all_ee_states.append(np.hstack([
-                            obs["robot0_eef_pos"],
-                            T.quat2axisangle(obs["robot0_eef_quat"]),
-                        ]))
-                        all_states.append(env.sim.get_state().flatten())
-                        all_robot_states.append(np.hstack([
-                            obs["robot0_eef_pos"],                        # (3,)
-                            T.quat2axisangle(obs["robot0_eef_quat"]),     # (3,)
-                            obs["robot0_gripper_qpos"],                   # (2,)
-                        ]))
-                        
-                        # store raw images, not prep_for_display frames
-                        # change the frames.append line to:
-                        agentview_images.append(obs["agentview_image"])          # raw
-                        eye_in_hand_images.append(obs["robot0_eye_in_hand_image"])  # raw
-
-                        # collect depth 
-                        agentview_depths.append(obs["agentview_depth"])            # ← add
-                        eye_in_hand_depths.append(obs["robot0_eye_in_hand_depth"]) # ← add
-
-                        # collect reward
-                        all_rewards.append(reward)
-                    # ───────────────────────────────────────────────────────────
+                    # break
 
             env.close()
             cv2.destroyAllWindows()
@@ -718,53 +527,9 @@ def generate_trajectory(
             # ── evaluate all three checks ─────────────────────────────────────
             decisive_place = not policy.z_stalled   # Check 2
             object_placed  = not object_stuck        # Check 3
-            arm_reached     = not policy.unreachable   # Check 4
-            
-
-            ...
-
-            fail_reasons = []
-            if not success:       fail_reasons.append(f"task failed (state={policy.state})")
-            if not decisive_place: fail_reasons.append("Z stalled in state 5")
-            if not object_placed:  fail_reasons.append("object stuck to gripper")
-            if not arm_reached:    fail_reasons.append(f"arm couldn't reach target (timed out in state {policy.state})")
-            trajectory_ok   = success and decisive_place and object_placed and arm_reached 
+            trajectory_ok  = success and decisive_place and object_placed
 
             if trajectory_ok:
-
-                # ──DATA COLLECTED ──────────────────────────────────────────────
-                cur_demo_data = {
-                    "instruction":     actual_instruction,
-                    "bddl_path":       result["bddl_path"],
-                    "bddl_content":    result["bddl"],
-                    "model_xml":       model_xml_initial,
-                    "init_state":      init_state,
-                    "seed":            seed,   # ← add this
-                    "actions":         np.stack(all_actions),
-                    "states":          np.stack(all_states),
-                    "agentview_rgb":    np.stack(agentview_images),   # ← also apply CAP_INDEX to images
-                    "eye_in_hand_rgb":  np.stack(eye_in_hand_images),
-                    "agentview_depth":  np.stack(agentview_depths),   # ← add
-                    "eye_in_hand_depth":np.stack(eye_in_hand_depths), # ← add
-                    "gripper_states":  np.stack(all_gripper_states),
-                    "joint_states":    np.stack(all_joint_states),
-                    "ee_states":       np.stack(all_ee_states),
-                    "robot_states":    np.stack(all_robot_states),
-                }
-
-                # cur_demo_data = {
-                #     "actions":      np.stack(all_actions),
-                #     "states":       np.stack(all_states),
-                #     "model_xml":    model_xml_initial,
-                #     "init_state":   init_state,
-                #     "instruction":  actual_instruction,
-                #     "bddl_content": result["bddl"],
-                # }
-
-                data_collected.append(cur_demo_data)
-                # ───────────────────────────────────────────────────────────
-
-
                 break   # accept — stop retrying
 
             fail_reasons = []
@@ -796,7 +561,7 @@ def generate_trajectory(
     if is_save_video:
         save_video(total_trajectory, env_grid_len, actual_instruction, save_video_path)
 
-    return total_trajectory, results, data_collected
+    return total_trajectory, results
 
 
 # In save_video — clamp to shortest trajectory, pad short ones with last frame
@@ -816,8 +581,8 @@ def save_video(all_trajectories, env_grid_len, cur_instruction, save_folder_path
     total_env = len(all_trajectories)
 
     if trajectory_len > 1:
-        output_file_path = os.path.join(save_folder_path, title + "mp4")
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        output_file_path = os.path.join(save_folder_path, title + "avi")
+        fourcc = cv2.VideoWriter_fourcc(*"MJPG")
         video_writer = cv2.VideoWriter(output_file_path, fourcc, 30, (grid_w, grid_h))
     else:
         output_file_path = os.path.join(save_folder_path, title + ".png")
@@ -845,10 +610,169 @@ def save_video(all_trajectories, env_grid_len, cur_instruction, save_folder_path
 # Entry point
 # ──────────────────────────────────────────────────────────────────────────────
 
-
-
 if __name__ == "__main__":
 
+    INSTRUCTION_TEMPLATES = [
+        # egocentric pick tasks: many same object + 1 bowl (16 tasks)
+        "Pick the closest object and place in the bowl.",
+        "Pick the furtherest object and place in the bowl.",
+        # "Pick the 1st closest object and place in the bowl.",
+        # "Pick the 2nd closest object and place in the bowl.",
+        # "Pick the 3rd closest object and place in the bowl.",
+        # "Pick the 4th closest object and place in the bowl.",
+        # "Pick the 5th closest object and place in the bowl.",
+        # "Pick the 6th closest object and place in the bowl.",
+        # "Pick the 7th closest object and place in the bowl.",
+        # "Pick the 1st furtherest object and place in the bowl.",
+        # "Pick the 2nd furtherest object and place in the bowl.",
+        # "Pick the 3rd furtherest object and place in the bowl.",
+        # "Pick the 4th furtherest object and place in the bowl.",
+        # "Pick the 5th furtherest object and place in the bowl.",
+        # "Pick the 6th furtherest object and place in the bowl.",
+        # "Pick the 7th furtherest object and place in the bowl.",
+
+        # egocentric place tasks: 1 object + many bowls (16 tasks)
+        "Pick the object and place in the closest bowl.",
+        "Pick the object and place in the furtherest bowl.",
+        # "Pick the object and place in the 1st closest bowl.",
+        # "Pick the object and place in the 2nd closest bowl.",
+        # "Pick the object and place in the 3rd closest bowl.",
+        # "Pick the object and place in the 4th closest bowl.",
+        # "Pick the object and place in the 5th closest bowl.",
+        # "Pick the object and place in the 6th closest bowl.",
+        # "Pick the object and place in the 7th closest bowl.",
+        # "Pick the object and place in the 1st furtherest bowl.",
+        # "Pick the object and place in the 2nd furtherest bowl.",
+        # "Pick the object and place in the 3rd furtherest bowl.",
+        # "Pick the object and place in the 4th furtherest bowl.",
+        # "Pick the object and place in the 5th furtherest bowl.",
+        # "Pick the object and place in the 6th furtherest bowl.",
+        # "Pick the object and place in the 7th furtherest bowl.",
+
+        # allocentric pick: many same object + 1 bowl (16 tasks)
+        "Pick the object closest to the bowl and place in the bowl.",
+        "Pick the object furtherest to the bowl and place in the bowl.",
+        # "Pick the 1st object closest to the bowl and place in the bowl.",
+        # "Pick the 2nd object closest to the bowl and place in the bowl.",
+        # "Pick the 3rd object closest to the bowl and place in the bowl.",
+        # "Pick the 4th object closest to the bowl and place in the bowl.",
+        # "Pick the 5th object closest to the bowl and place in the bowl.",
+        # "Pick the 6th object closest to the bowl and place in the bowl.",
+        # "Pick the 7th object closest to the bowl and place in the bowl.",
+        # "Pick the 1st object furtherest to the bowl and place in the bowl.",
+        # "Pick the 2nd object furtherest to the bowl and place in the bowl.",
+        # "Pick the 3rd object furtherest to the bowl and place in the bowl.",
+        # "Pick the 4th object furtherest to the bowl and place in the bowl.",
+        # "Pick the 5th object furtherest to the bowl and place in the bowl.",
+        # "Pick the 6th object furtherest to the bowl and place in the bowl.",
+        # "Pick the 7th object furtherest to the bowl and place in the bowl.",
+
+        # allocentric place: 1 object + many bowls (16 tasks)
+        "Pick the object and place in the bowl closest to it.",
+        "Pick the object and place in the bowl furtherest from it.",
+        # "Pick the object and place in the 1st bowl closest to it.",
+        # "Pick the object and place in the 2nd bowl closest to it.",
+        # "Pick the object and place in the 3rd bowl closest to it.",
+        # "Pick the object and place in the 4th bowl closest to it.",
+        # "Pick the object and place in the 5th bowl closest to it.",
+        # "Pick the object and place in the 6th bowl closest to it.",
+        # "Pick the object and place in the 7th bowl closest to it.",
+        # "Pick the object and place in the 1st bowl furtherest from it.",
+        # "Pick the object and place in the 2nd bowl furtherest from it.",
+        # "Pick the object and place in the 3rd bowl furtherest from it.",
+        # "Pick the object and place in the 4th bowl furtherest from it.",
+        # "Pick the object and place in the 5th bowl furtherest from it.",
+        # "Pick the object and place in the 6th bowl furtherest from it.",
+        # "Pick the object and place in the 7th bowl furtherest from it.",
+
+        # pick by feature: many different objects + 1 bowl (12 tasks)
+        "Pick the largest object and place in the bowl.",
+        "Pick the smallest object and place in the bowl.",
+        # "Pick the 1st largest object and place in the bowl.",
+        # "Pick the 2nd largest object and place in the bowl.",
+        # "Pick the 3rd largest object and place in the bowl.",
+        # "Pick the 4th largest object and place in the bowl.",
+        # "Pick the 5th largest object and place in the bowl.",
+        # "Pick the 1st smallest object and place in the bowl.",
+        # "Pick the 2nd smallest object and place in the bowl.",
+        # "Pick the 3rd smallest object and place in the bowl.",
+        # "Pick the 4th smallest object and place in the bowl.",
+        # "Pick the 5th smallest object and place in the bowl.",
+
+        # place by feature: 1 object + different bowls (8 tasks)
+        "Pick the object and place in the largest bowl.",
+        "Pick the object and place in the smallest bowl.",
+        # "Pick the object and place in the 1st largest bowl.",
+        # "Pick the object and place in the 2nd largest bowl.",
+        # "Pick the object and place in the 3rd largest bowl.",
+        # "Pick the object and place in the 1st smallest bowl.",
+        # "Pick the object and place in the 2nd smallest bowl.",
+        # "Pick the object and place in the 3rd smallest bowl.",
+
+        # middle pick/place (2 tasks)
+        "Pick the object in the middle and place in the bowl.",
+        "Pick the object and place in the bowl in the middle.",
+    ]
+
+    TABLE_HEIGHT = 0.9
+
+    # OBJECT_PICK_PARAMS  [x_offset, y_offset, height]
+    #   x/y: lateral offset from the observed object centre to the gripper
+    #        approach point.
+    #   height: z above the table surface at which the gripper closes.
+    OBJECT_PICK_PARAMS = {
+        "milk":                          np.array([0.0,  0.0,  0.09]),
+        "moka_pot":                      np.array([0.0,  0.0,  0.14]),
+        "glazed_rim_porcelain_ramekin":  np.array([0.0,  0.03, 0.02]),
+        "tomato_sauce":                  np.array([0.0,  0.0,  0.03]),
+        "alphabet_soup":                 np.array([0.0,  0.0,  0.03]),
+        "butter":                        np.array([0.0,  0.0,  0.0]),
+        "ketchup":                       np.array([0.0,  0.0,  0.11]),
+        "orange_juice":                  np.array([0.0,  0.0,  0.10]),
+    }
+
+    # OBJECT_PLACE_OFFSET  [x_offset, y_offset, z_offset]
+    #   Added to place_pos to compensate for how the object sits in the gripper
+    #   after grasping so the object lands centred over the target bowl.
+    #   For centred grasps this is [0, 0, 0].
+    #   For the ramekin the gripper contacts the rim at +y, so the object hangs
+    #   -y relative to the gripper centre; negate the pick y-offset here to
+    #   correct the landing position.
+    #   Tune z_offset per-object if the drop height needs adjustment.
+
+    OBJECT_PLACE_OFFSET = {
+        "milk":                          np.array([0.0,   0.0,  0.03]),
+        "moka_pot":                      np.array([0.0,   0.0,  0.08]),
+        "glazed_rim_porcelain_ramekin":  np.array([0.0,  0.03, 0.01]),
+        "tomato_sauce":                  np.array([0.0,   0.0,  0.01]),
+        "alphabet_soup":                 np.array([0.0,   0.0,  0.01]),
+        "butter":                        np.array([0.0,   0.0,  0.01]),
+        "ketchup":                       np.array([0.0,   0.0,  0.05]),
+        "orange_juice":                  np.array([0.0,   0.0,  0.04]),
+    }
+
+    BOWL_PLACE_POS = {
+        "white_bowl":       np.array([0.0, 0.0, 0.03]),
+        "akita_black_bowl": np.array([0.0, 0.0, 0.0]),
+        "plate":            np.array([0.0, 0.0, 0.0]),
+    }
+
+    OBJECT_POOL = [
+        "milk",
+        "orange_juice",
+        "ketchup",
+        "alphabet_soup",
+        "moka_pot",
+        "tomato_sauce",
+        "glazed_rim_porcelain_ramekin",
+        "butter",
+    ]
+
+    BOWL_POOL = [
+        "akita_black_bowl",
+        "white_bowl",
+        "plate"
+    ]
 
     trajectory_output_path = (
         "/Hyperplane/shuijie/trajectory_data_1"
@@ -858,9 +782,9 @@ if __name__ == "__main__":
     logger  = TrajectoryLogger(log_dir=log_dir)
 
     for testing_object_type in OBJECT_POOL:
-        # if os.path.exists(os.path.join(trajectory_output_path, testing_object_type)):
-        #     print(f"[DEBUG INFO trajectory generator]: path to {testing_object_type} exists")
-        #     continue
+        if os.path.exists(os.path.join(trajectory_output_path, testing_object_type)):
+            print(f"[DEBUG INFO trajectory generator]: path to {testing_object_type} exists")
+            continue
 
         for testing_bowl_type in BOWL_POOL:
 
@@ -874,7 +798,7 @@ if __name__ == "__main__":
 
             for testing_instruction in INSTRUCTION_TEMPLATES:
                 policy = AutoGenPolicy(is_debugging=True)
-                cur_total_trajectory, cur_results, cur_data_collected = generate_trajectory(
+                generate_trajectory(
                     instruction=testing_instruction,
                     policy=policy,
                     object_type=testing_object_type,
@@ -886,7 +810,7 @@ if __name__ == "__main__":
                     is_log_printed=True,
                     is_save_video=True,
                     save_video_path=cur_trajectory_output_path,
-                    env_grid_len=1,
+                    env_grid_len=4,
                     logger=logger,          # ← pass it in
                 )
 

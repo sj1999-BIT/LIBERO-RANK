@@ -41,17 +41,17 @@ BOWL_SIZE_RANK = [
 
 # maximum number of objects of each type to include in the task (including the bowl)
 OBJECT_NUM_LIMITS = {
-    "akita_black_bowl": 5,
+    "akita_black_bowl": 7,
     "milk": 7,
-    "moka_pot": 5,
-    "glazed_rim_porcelain_ramekin": 6,
+    "moka_pot": 7,
+    "glazed_rim_porcelain_ramekin": 7,
     "tomato_sauce": 7,
     "alphabet_soup": 7,
     "butter": 7,
     "ketchup": 7,
     "orange_juice": 7,    
-    "white_bowl": 5,
-    "plate": 4,
+    "white_bowl": 7,
+    "plate": 7,
 }
 
 # number of cells that must be between two plates (in any direction) to avoid overlap
@@ -63,7 +63,7 @@ OBJECT_SPACING_REQUIREMENTS = {
     "basket": 5,
     "milk": 3,
     "moka_pot": 6,
-    "glazed_rim_porcelain_ramekin": 4,
+    "glazed_rim_porcelain_ramekin": 5,
     "tomato_sauce": 4,
     "alphabet_soup": 3,
     "butter": 4,

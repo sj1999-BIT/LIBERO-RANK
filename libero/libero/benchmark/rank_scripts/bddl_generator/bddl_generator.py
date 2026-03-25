@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from .variables import _PROBLEM_CLASS, OBJECT_NUM_LIMITS, OBJECT_POOL, BOWL_TYPE, INSTRUCTION_TEMPLATES, OBJECT_SIZE_RANK, BOWL_SIZE_RANK, BOWL_POOL
-from .env_generate_utils import allocate_obj_to_region, parse_cell_region, parse_ranking_index, clamp_rank_to_list, _bowl_region_reachable, debug_log_print
+from .env_generate_utils import allocate_obj_to_region, parse_cell_region, parse_ranking_index, clamp_rank_to_list, debug_log_print
 
 import os
 import re
@@ -116,7 +116,6 @@ def generate_bddl(
         "resolved_language": resolved_language
     }
  
- 
 
 # ─────────────────────────────────────────────────────────────────────────────
 def generate_egocentric_pick_task_bddl(
@@ -129,7 +128,7 @@ def generate_egocentric_pick_task_bddl(
     output_path: Optional[str] = None,
     save_bddl: bool = False,
     is_debugging: bool = False,
-    max_place_retries: int = 100,          # ← new
+    max_place_retries: int = 100,
 ) -> dict:
     rng = np.random.RandomState(seed)
 
@@ -140,49 +139,40 @@ def generate_egocentric_pick_task_bddl(
 
     resolved_language = language.replace("object", object_type).replace("item", object_type)
     obj_num = min(OBJECT_NUM_LIMITS[object_type], obj_num)
-    obj_list = [f"{object_type}_{i}" for i in range(obj_num)]
 
-    bowl_instance = f"{bow_type}_0"
-
-
-    inst2region, regions = allocate_obj_to_region(
-        obj_list,          # pass a copy — allocate mutates the list
-        has_bowl=True,
-        grid_size=grid_size,
-        seed=seed,
-        need_middle_object=False,
-        bowl_type=bow_type,
-    )
+    # ── retry: reduce same-type objects one at a time until they fit ──────────
+    # The bowl is the only non-repetitive item; objects are all `object_type_i`.
+    min_obj_num = 1
+    inst2region, regions = None, None
+    while obj_num >= min_obj_num:
+        obj_list = [f"{object_type}_{i}" for i in range(obj_num)]
+        bowl_instance = f"{bow_type}_0"
+        try:
+            inst2region, regions = allocate_obj_to_region(
+                obj_list,
+                has_bowl=True,
+                grid_size=grid_size,
+                seed=seed,
+                need_middle_object=False,
+                bowl_type=bow_type,
+            )
+            break  # placement succeeded
+        except Exception:
+            debug_log_print(
+                "generate_egocentric_pick_task_bddl",
+                f"obj_num={obj_num} too many, retrying with {obj_num - 1}",
+                is_debugging,
+            )
+            obj_num -= 1
+    else:
+        raise RuntimeError(
+            f"generate_egocentric_pick_task_bddl: cannot place even {min_obj_num} "
+            f"'{object_type}' object(s) on the table."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
 
     debug_log_print("generate_egocentric_pick_task_bddl",
                     f"inst2region {inst2region}", is_debugging)
-
-    # # ── retry until bowl lands in the reachable place envelope ───────────────
-    # for attempt in range(max_place_retries):
-    #     attempt_seed = None if seed is None else seed + attempt
-    #     inst2region, regions = allocate_obj_to_region(
-    #         list(obj_list),          # pass a copy — allocate mutates the list
-    #         has_bowl=True,
-    #         grid_size=grid_size,
-    #         seed=attempt_seed,
-    #         need_middle_object=False,
-    #         bowl_type=bow_type,
-    #     )
-
-    #     # if _bowl_region_reachable(bowl_instance, inst2region, regions):
-    #     #     break
-
-    #     debug_log_print(
-    #         "generate_egocentric_pick_task_bddl",
-    #         f"attempt {attempt}: bowl at {inst2region.get(bowl_instance)} out of reach, retrying",
-    #         is_debugging,
-    #     )
-    # else:
-    #     raise RuntimeError(
-    #         f"Could not place bowl within reachable envelope after "
-    #         f"{max_place_retries} attempts for '{resolved_language}'."
-    #     )
-    # # ─────────────────────────────────────────────────────────────────────────
 
     sorted_objects = sorted(
         [obj for obj in inst2region if bow_type not in obj],
@@ -242,17 +232,36 @@ def generate_egocentric_place_task_bddl(
  
     target_pick_obj = f"{object_type}_0"
     resolved_language = language.replace("object", object_type).replace("item", object_type)
- 
-    obj_list = [target_pick_obj] + [f"{bow_type}_{i}" for i in range(obj_num)]
- 
-    inst2region, regions = allocate_obj_to_region(
-        obj_list,
-        has_bowl=False,
-        grid_size=grid_size,
-        seed=seed,
-        need_middle_object=False,
-        bowl_type=bow_type
-    )
+
+    # ── retry: reduce same-type bowls one at a time until they fit ────────────
+    # `target_pick_obj` is the only non-repetitive item; all bowls are `bow_type_i`.
+    min_obj_num = 1
+    inst2region, regions = None, None
+    while obj_num >= min_obj_num:
+        obj_list = [target_pick_obj] + [f"{bow_type}_{i}" for i in range(obj_num)]
+        try:
+            inst2region, regions = allocate_obj_to_region(
+                obj_list,
+                has_bowl=False,
+                grid_size=grid_size,
+                seed=seed,
+                need_middle_object=False,
+                bowl_type=bow_type,
+            )
+            break
+        except Exception:
+            debug_log_print(
+                "generate_egocentric_place_task_bddl",
+                f"bowl_num={obj_num} too many, retrying with {obj_num - 1}",
+                is_debugging,
+            )
+            obj_num -= 1
+    else:
+        raise RuntimeError(
+            f"generate_egocentric_place_task_bddl: cannot place even {min_obj_num} "
+            f"'{bow_type}' bowl(s) on the table."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
  
     sorted_bowls = sorted(
         [obj for obj in inst2region if bow_type in obj],
@@ -311,20 +320,39 @@ def generate_allocentric_pick_task_bddl(
         bow_type = rng.choice(BOWL_POOL)
 
     obj_num = min(OBJECT_NUM_LIMITS[object_type], obj_num)
-    obj_list = [f"{object_type}_{i}" for i in range(obj_num)]
 
     resolved_language = language.replace("object", object_type).replace("item", object_type)
- 
-    inst2region, regions, distance_map = allocate_obj_to_region(
-        obj_list,
-        has_bowl=True,
-        grid_size=grid_size,
-        seed=seed,
-        need_middle_object=False,
-        bowl_type=bow_type,
-        need_allocation_dist=True,
-        allocated_object_type=f"{bow_type}_0",
-    )
+
+    # ── retry: reduce same-type objects one at a time until they fit ──────────
+    min_obj_num = 1
+    inst2region, regions, distance_map = None, None, None
+    while obj_num >= min_obj_num:
+        obj_list = [f"{object_type}_{i}" for i in range(obj_num)]
+        try:
+            inst2region, regions, distance_map = allocate_obj_to_region(
+                obj_list,
+                has_bowl=True,
+                grid_size=grid_size,
+                seed=seed,
+                need_middle_object=False,
+                bowl_type=bow_type,
+                need_allocation_dist=True,
+                allocated_object_type=f"{bow_type}_0",
+            )
+            break
+        except Exception:
+            debug_log_print(
+                "generate_allocentric_pick_task_bddl",
+                f"obj_num={obj_num} too many, retrying with {obj_num - 1}",
+                is_debugging,
+            )
+            obj_num -= 1
+    else:
+        raise RuntimeError(
+            f"generate_allocentric_pick_task_bddl: cannot place even {min_obj_num} "
+            f"'{object_type}' object(s) on the table."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
  
     sorted_objects = sorted(
         [obj for obj in inst2region if bow_type not in obj],
@@ -385,19 +413,38 @@ def generate_allocentric_place_task_bddl(
  
     target_pick_obj = f"{object_type}_0"
     resolved_language = language.replace("object", object_type).replace("item", object_type)
- 
-    obj_list = [target_pick_obj] + [f"{bow_type}_{i}" for i in range(obj_num)]
- 
-    inst2region, regions, distance_map = allocate_obj_to_region(
-        obj_list,
-        has_bowl=False,
-        grid_size=grid_size,
-        seed=seed,
-        need_middle_object=False,
-        bowl_type=bow_type,
-        need_allocation_dist=True,
-        allocated_object_type=target_pick_obj,
-    )
+
+    # ── retry: reduce same-type bowls one at a time until they fit ────────────
+    # `target_pick_obj` is the only non-repetitive item; all bowls are `bow_type_i`.
+    min_obj_num = 1
+    inst2region, regions, distance_map = None, None, None
+    while obj_num >= min_obj_num:
+        obj_list = [target_pick_obj] + [f"{bow_type}_{i}" for i in range(obj_num)]
+        try:
+            inst2region, regions, distance_map = allocate_obj_to_region(
+                obj_list,
+                has_bowl=False,
+                grid_size=grid_size,
+                seed=seed,
+                need_middle_object=False,
+                bowl_type=bow_type,
+                need_allocation_dist=True,
+                allocated_object_type=target_pick_obj,
+            )
+            break
+        except Exception:
+            debug_log_print(
+                "generate_allocentric_place_task_bddl",
+                f"bowl_num={obj_num} too many, retrying with {obj_num - 1}",
+                is_debugging,
+            )
+            obj_num -= 1
+    else:
+        raise RuntimeError(
+            f"generate_allocentric_place_task_bddl: cannot place even {min_obj_num} "
+            f"'{bow_type}' bowl(s) on the table."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
  
     sorted_bowls = sorted(
         [obj for obj in inst2region if bow_type in obj],
@@ -455,25 +502,37 @@ def generate_middle_pick_task_bddl(
 
     while obj_num > OBJECT_NUM_LIMITS[cur_obj_type]:
         obj_num -= 2
- 
-    obj_list = []
-    obj_count_dict = {}
-    for _ in range(obj_num):
-        
-        if cur_obj_type in obj_count_dict:
-            obj_count_dict[cur_obj_type] += 1
-        else:
-            obj_count_dict[cur_obj_type] = 0
-        obj_list.append(f"{cur_obj_type}_{obj_count_dict[cur_obj_type]}")
- 
-    inst2region, regions = allocate_obj_to_region(
-        obj_list,
-        has_bowl=True,
-        grid_size=grid_size,
-        seed=seed,
-        need_middle_object=True,
-        bowl_type=bow_type
-    )
+
+    # ── retry: reduce same-type objects by 2 (keep odd) until they fit ────────
+    # The bowl is the only non-repetitive item; objects are all `cur_obj_type_i`.
+    # Minimum is 3 because a "middle" among fewer than 3 is ill-defined.
+    min_obj_num = 3
+    inst2region, regions = None, None
+    while obj_num >= min_obj_num:
+        obj_list = [f"{cur_obj_type}_{i}" for i in range(obj_num)]
+        try:
+            inst2region, regions = allocate_obj_to_region(
+                obj_list,
+                has_bowl=True,
+                grid_size=grid_size,
+                seed=seed,
+                need_middle_object=True,
+                bowl_type=bow_type,
+            )
+            break
+        except Exception:
+            debug_log_print(
+                "generate_middle_pick_task_bddl",
+                f"obj_num={obj_num} too many, retrying with {obj_num - 2}",
+                is_debugging,
+            )
+            obj_num -= 2  # keep the count odd
+    else:
+        raise RuntimeError(
+            f"generate_middle_pick_task_bddl: cannot place even {min_obj_num} "
+            f"'{cur_obj_type}' objects on the table."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
  
     sorted_objects = sorted(
         [obj for obj in inst2region if bow_type not in obj],
@@ -531,23 +590,38 @@ def generate_middle_place_task_bddl(
         bowl_num -= 2
  
     target_obj_type = f"{object_type}_0"
-
-    
     resolved_language = language.replace("object", target_obj_type).replace("item", target_obj_type)
- 
 
-    obj_list = [target_obj_type]
-    for i in range(bowl_num):
-        obj_list.append(f"{bow_type}_{i}")
- 
-    inst2region, regions = allocate_obj_to_region(
-        obj_list,
-        has_bowl=False,
-        grid_size=grid_size,
-        seed=seed,
-        need_middle_object=True,
-        bowl_type=bow_type
-    )
+    # ── retry: reduce same-type bowls by 2 (keep odd) until they fit ──────────
+    # `target_obj_type` is the only non-repetitive item; all bowls are `bow_type_i`.
+    # Minimum is 3 because a "middle" among fewer than 3 is ill-defined.
+    min_bowl_num = 3
+    inst2region, regions = None, None
+    while bowl_num >= min_bowl_num:
+        obj_list = [target_obj_type] + [f"{bow_type}_{i}" for i in range(bowl_num)]
+        try:
+            inst2region, regions = allocate_obj_to_region(
+                obj_list,
+                has_bowl=False,
+                grid_size=grid_size,
+                seed=seed,
+                need_middle_object=True,
+                bowl_type=bow_type,
+            )
+            break
+        except Exception:
+            debug_log_print(
+                "generate_middle_place_task_bddl",
+                f"bowl_num={bowl_num} too many, retrying with {bowl_num - 2}",
+                is_debugging,
+            )
+            bowl_num -= 2  # keep the count odd
+    else:
+        raise RuntimeError(
+            f"generate_middle_place_task_bddl: cannot place even {min_bowl_num} "
+            f"'{bow_type}' bowls on the table."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
  
     sorted_bowls = sorted(
         [obj for obj in inst2region if bow_type in obj],
@@ -596,16 +670,50 @@ def generate_pick_by_feature_task_bddl(
     rng = np.random.RandomState(seed)
  
     obj_num = min(len(OBJECT_SIZE_RANK), obj_num)
-    obj_list = [f"{t}_0" for t in rng.choice(OBJECT_SIZE_RANK, size=obj_num, replace=False)]
- 
-    inst2region, regions = allocate_obj_to_region(
-        obj_list,
-        has_bowl=True,
-        grid_size=grid_size,
-        seed=seed,
-        need_middle_object=False,
-        bowl_type=bow_type
-    )
+
+    if bow_type is None:
+        bow_type = rng.choice(BOWL_POOL)
+
+    # ── retry: remove the last-added (highest-rank-index) object until fit ────
+    # All objects are of distinct types drawn from OBJECT_SIZE_RANK, so the only
+    # valid reduction is to shrink the sample — not to remove duplicates.
+    # We sample once at the maximum size and then trim the tail on each retry,
+    # preserving the relative size ordering and the RNG sequence.
+    min_obj_num = 1
+    sampled_types = rng.choice(OBJECT_SIZE_RANK, size=obj_num, replace=False).tolist()
+    inst2region, regions = None, None
+    while obj_num >= min_obj_num:
+        obj_list = [f"{t}_0" for t in sampled_types[:obj_num]]
+        try:
+
+            debug_log_print(
+                "generate_pick_by_feature_task_bddl",
+                f"current obj_num={obj_num}",
+                is_debugging,
+            )
+            inst2region, regions = allocate_obj_to_region(
+                obj_list,
+                has_bowl=True,
+                grid_size=grid_size,
+                seed=seed,
+                need_middle_object=False,
+                bowl_type=bow_type,
+                is_debugging=is_debugging
+            )
+            break
+        except Exception:
+            debug_log_print(
+                "generate_pick_by_feature_task_bddl",
+                f"obj_num={obj_num} too many, retrying with {obj_num - 1}",
+                is_debugging,
+            )
+            obj_num -= 1
+    else:
+        raise RuntimeError(
+            f"generate_pick_by_feature_task_bddl: cannot place even {obj_num} of {sampled_types}"
+            f"object(s) from OBJECT_SIZE_RANK on the table."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
  
     sorted_objects = sorted(
         [inst for inst in inst2region if bow_type not in inst],
@@ -618,6 +726,7 @@ def generate_pick_by_feature_task_bddl(
     debug_log_print(function_name="generate_pick_by_feature_task_bddl", debug_message=f"instruction '{language}': rank={rank}", is_debugging=is_debugging)
 
     target_object = sorted_objects[rank]
+    target_bowl_instance = f"{bow_type}_0"
 
     debug_log_print(function_name="generate_pick_by_feature_task_bddl", debug_message=f"target={target_object}", is_debugging=is_debugging)
  
@@ -628,6 +737,7 @@ def generate_pick_by_feature_task_bddl(
         all_objects=obj_list,
         target_object=target_object,
         save_bddl=save_bddl,
+        bowl_instance=target_bowl_instance,
         output_path=output_path
     )
  
@@ -654,24 +764,46 @@ def generate_place_by_feature_task_bddl(
     rng = np.random.RandomState(seed)
  
     bowl_num = min(len(BOWL_SIZE_RANK), obj_num)
-    obj_list = [f"{t}_0" for t in rng.choice(BOWL_SIZE_RANK, size=bowl_num, replace=False)]
- 
+
     if target_obj_type is None:
-        target_obj_type = f"{rng.choice(OBJECT_POOL)}_0"
+        target_obj_type = rng.choice(OBJECT_POOL)
 
-    obj_list.append(target_obj_type)
+    target_obj_inst = f"{rng.choice(OBJECT_POOL)}_0"
+    resolved_language = language.replace("object", target_obj_inst).replace("item", target_obj_inst)
 
-    resolved_language = language.replace("object", target_obj_type).replace("item", target_obj_type)
- 
-    inst2region, regions = allocate_obj_to_region(
-        obj_list,
-        has_bowl=False,
-        grid_size=grid_size,
-        seed=seed
-    )
+    # ── retry: remove the last-added (highest-rank-index) bowl until fit ──────
+    # All bowls are of distinct types drawn from BOWL_SIZE_RANK; `target_obj_inst`
+    # is the only non-repetitive (non-bowl) item and must never be removed.
+    min_bowl_num = 1
+    sampled_bowl_types = rng.choice(BOWL_SIZE_RANK, size=bowl_num, replace=False).tolist()
+    inst2region, regions = None, None
+    while bowl_num >= min_bowl_num:
+        bowl_insts = [f"{t}_0" for t in sampled_bowl_types[:bowl_num]]
+        obj_list = bowl_insts + [target_obj_inst]
+        try:
+            inst2region, regions = allocate_obj_to_region(
+                obj_list,
+                has_bowl=False,
+                grid_size=grid_size,
+                seed=seed,
+            )
+            break
+        except Exception:
+            debug_log_print(
+                "generate_place_by_feature_task_bddl",
+                f"bowl_num={bowl_num} too many, retrying with {bowl_num - 1}",
+                is_debugging,
+            )
+            bowl_num -= 1
+    else:
+        raise RuntimeError(
+            f"generate_place_by_feature_task_bddl: cannot place even {min_bowl_num} "
+            f"bowl(s) from BOWL_SIZE_RANK on the table."
+        )
+    # ─────────────────────────────────────────────────────────────────────────
  
     sorted_bowls = sorted(
-        [inst for inst in inst2region if target_obj_type not in inst],
+        [inst for inst in inst2region if target_obj_inst not in inst],
         key=lambda inst: BOWL_SIZE_RANK.index(inst.rsplit("_", 1)[0])
     )
  
@@ -691,7 +823,7 @@ def generate_place_by_feature_task_bddl(
         inst2region=inst2region,
         regions=regions,
         all_objects=obj_list,
-        target_object=target_obj_type,
+        target_object=target_obj_inst,
         bowl_instance=target_bowl,
         save_bddl=save_bddl,
         output_path=output_path

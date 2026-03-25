@@ -33,46 +33,54 @@ def get_obj_type(label: str):
 ##############################################################################################
 
 
-# Reachable place envelope derived from AutoGenPolicy failure analysis.
-# State-5 failures (can't descend to place) dominate when |y| > 0.20;
-# State-3 failures (can't lift to transit height) occur when |x| > 0.10.
-REACHABLE_PLACE_X = (-0.10, 0.10)
-REACHABLE_PLACE_Y = (-0.20, 0.20)
+# # Reachable place envelope derived from AutoGenPolicy failure analysis.
+# # State-5 failures (can't descend to place) dominate when |y| > 0.20;
+# # State-3 failures (can't lift to transit height) occur when |x| > 0.10.
+# REACHABLE_PLACE_X = (-0.10, 0.10)
+# REACHABLE_PLACE_Y = (-0.20, 0.20)
 
 
-def _bowl_region_reachable(bowl_instance: str, inst2region: dict, regions: dict) -> bool:
-    """
-    Returns True if the centre of the bowl's assigned region falls within the
-    gripper's reachable place envelope.  Uses region-centre coordinates as a
-    proxy for the actual bowl world position — valid because make_table_regions
-    already works in table-surface world coordinates.
-    """
-    region_name = inst2region.get(bowl_instance)
-    if region_name is None:
-        return True   # can't check, don't block
-    x0, y0, x1, y1 = regions[region_name]
-    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
-    return (REACHABLE_PLACE_X[0] <= cx <= REACHABLE_PLACE_X[1] and
-            REACHABLE_PLACE_Y[0] <= cy <= REACHABLE_PLACE_Y[1])
+# def _bowl_region_reachable(bowl_instance: str, inst2region: dict, regions: dict) -> bool:
+#     """
+#     Returns True if the centre of the bowl's assigned region falls within the
+#     gripper's reachable place envelope.  Uses region-centre coordinates as a
+#     proxy for the actual bowl world position — valid because make_table_regions
+#     already works in table-surface world coordinates.
+#     """
+#     region_name = inst2region.get(bowl_instance)
+#     if region_name is None:
+#         return True   # can't check, don't block
+#     x0, y0, x1, y1 = regions[region_name]
+#     cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+#     return (REACHABLE_PLACE_X[0] <= cx <= REACHABLE_PLACE_X[1] and
+#             REACHABLE_PLACE_Y[0] <= cy <= REACHABLE_PLACE_Y[1])
 
 
 """
 Generate an n×n grid of table regions.
 e.g. n=4 → 16 cells, n=5 → 25 cells.
 """
-def make_table_regions(n: int) -> dict:
-    regions = {}
-    x_min, x_max = -0.20, 0.20
-    restricted_threshold = 0.10 * (x_max - x_min)
-    # x_max = x_max -   restricted_threshold # trim top 10% of x range
-    # x_min = x_min + restricted_threshold  # trim top 10% of x range
-    xs = np.linspace(x_min, x_max, n + 1)
-    ys = np.linspace(-0.25, 0.25, n + 1)
-    for i, (x0, x1) in enumerate(zip(xs[:-1], xs[1:])):
+X_RANGE = 0.2
+Y_RANGE = 0.25
 
-        if i < 4 or i > n - 5:
-            continue 
+def make_table_regions(n: int, lower_limit: int=None, upper_limit: int=None) -> dict:
+    """Generate an n×n grid; rows 0-3 and (n-4)-(n-1) are trimmed (reachability)."""
+    regions = {}
+    xs = np.linspace(-X_RANGE, X_RANGE, n + 1)
+    ys = np.linspace(-Y_RANGE, Y_RANGE, n + 1)
+    for i, (x0, x1) in enumerate(zip(xs[:-1], xs[1:])):
+        if lower_limit is not None and i < lower_limit:
+            continue
+
+        if upper_limit is not None and i > n - upper_limit:
+            continue
+
         for j, (y0, y1) in enumerate(zip(ys[:-1], ys[1:])):
+            if lower_limit is not None and j < lower_limit:
+                continue
+
+            if upper_limit is not None and j > n - upper_limit:
+                continue
             regions[f"cell_{i}_{j}"] = (float(x0), float(y0), float(x1), float(y1))
     return regions
 
@@ -142,7 +150,10 @@ def remove_regions(region_names: list, occupied_region_name: str, spacing: int =
     # ── Chebyshev neighbourhood: remove all cells within spacing in all 8 directions ──
     for r in region_names:
         row, col = parse_cell_region(r)
-        if max(abs(row - occupied_row), abs(col - occupied_col)) <= spacing:
+        # if max(abs(row - occupied_row), abs(col - occupied_col)) <= spacing:
+        #     to_remove.add(r)
+
+        if max(abs(row - occupied_row), abs(col - occupied_col) * Y_RANGE / X_RANGE) <= spacing:
             to_remove.add(r)
 
     for r in to_remove:
@@ -177,13 +188,15 @@ def allocate_obj_to_region(obj_list,
                            allocated_object_type: str = None,
                            bowl_type: str = BOWL_TYPE,
                            is_debugging: bool = True,
+                           lower_limit = 2,
+                           upper_limit = 2
                            ):
     
     # Create a random number generator with the given seed for reproducibility
     rng = np.random.RandomState(seed) 
 
     # create the regions
-    regions = {**make_table_regions(grid_size), **(extra_regions or {})}
+    regions = {**make_table_regions(grid_size, lower_limit, upper_limit), **(extra_regions or {})}
 
 
     # add a bowl instance
@@ -272,6 +285,9 @@ def allocate_obj_to_region(obj_list,
         f"Could not place all {len(obj_list)} objects after "
         f"{max_attempt} attempts. Try reducing num_objects, spacing, or increasing grid_size."
     )
+
+
+
 
 
 """

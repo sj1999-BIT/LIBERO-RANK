@@ -39,34 +39,28 @@ def prep_for_display(img):
 
 
 env = OffScreenRenderEnv(**env_args)
+
 env.seed(0)
 
 obs = env.reset()
 
-target_key = "akita_black_bowl_0"
 
 for step in tqdm(range(500), desc="Moving to target"):
-    robot_eef_pos = obs["robot0_eef_pos"]
-
-    # Use actual target_pos from obs — update each step in case of physics drift
-    target_pos = obs[f"{target_key}_pos"]
-    delta_pos  = target_pos[:2] - robot_eef_pos[:2]# keep height constant
 
     action_7dim = np.zeros(7)
-    action_7dim[:2] = np.clip(delta_pos * 10, -1, 1)
-    action_7dim[6]  = -1.0   # gripper open
+
 
     obs, reward, done, info = env.step(action_7dim)
 
-    try:
-        if "agentview_image" in obs:
-            cv2.imshow("Main Camera", prep_for_display(obs["agentview_image"]))
-        if "robot0_eye_in_hand_image" in obs:
-            cv2.imshow("Gripper Camera", prep_for_display(obs["robot0_eye_in_hand_image"]))
-        if cv2.waitKey(1) & 0xFF == 27:
-            break
-    except Exception:
-        pass
+    # try:
+    #     if "agentview_image" in obs:
+    #         cv2.imshow("Main Camera", prep_for_display(obs["agentview_image"]))
+    #     if "robot0_eye_in_hand_image" in obs:
+    #         cv2.imshow("Gripper Camera", prep_for_display(obs["robot0_eye_in_hand_image"]))
+    #     if cv2.waitKey(1) & 0xFF == 27:
+    #         break
+    # except Exception:
+    #     pass
 
 env.close()
 cv2.destroyAllWindows()
