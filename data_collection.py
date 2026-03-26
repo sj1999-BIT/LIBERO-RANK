@@ -38,8 +38,8 @@ from trajectory_generator import generate_trajectory, AutoGenPolicy
 
 # ── tuneable constants ────────────────────────────────────────────────────────
 CAP_INDEX       = 0      # drop first N steps (force sensor unstable)
-N_DEMOS         = 3
-HDF5_ROOT       = "/Hyperplane/shuijie/trajectory_data_hdf5"
+N_DEMOS         = 30
+HDF5_ROOT       = "/Hyperplane/shuijie/hdf5_trajectory_data"
 ROBOT_STATE_DIM = 8      # change to 9 if you add gripper_qvel[:1]
 
 
@@ -266,17 +266,20 @@ if __name__ == "__main__":
     #     for testing_bowl_type in BOWL_POOL:
     for testing_instruction in INSTRUCTION_TEMPLATES:
 
-        safe_instr = testing_instruction.strip().replace(" ", "_")[:60]
+        safe_instr = testing_instruction.strip().replace(" ", "_")[:60].replace(".", "")
         hdf5_path  = os.path.join(
             HDF5_ROOT,
             # testing_object_type,
             # testing_bowl_type,
-            f"{safe_instr}_demo.hdf5",
+            f"{safe_instr}_demo",
         )
 
         if os.path.exists(hdf5_path):
             print(f"[SKIP] {hdf5_path}")
             continue
+        else:
+            os.makedirs(hdf5_path)
+
 
         print(f"\n{'='*60}")
         # print(f"OBJ={testing_object_type} | BOWL={testing_bowl_type}")
@@ -324,11 +327,12 @@ if __name__ == "__main__":
                     print(f"  [WARNING] sanity check failed: {e}")
                     continue
 
-        save_demos_to_hdf5(
-            demos=demos[:N_DEMOS],
-            hdf5_path=hdf5_path,
-            env_name="LiberoRank",
-            problem_name=testing_instruction,
-            env_kwargs=BASE_ENV_KWARGS,
-        )
-        break
+                        
+        for demo_index, demo in enumerate(demos):
+            save_demos_to_hdf5(
+                demos=[demo, ],
+                hdf5_path=os.path.join(hdf5_path, f"demo_{demo_index}.hdr5"),
+                env_name="LiberoRank",
+                problem_name=testing_instruction,
+                env_kwargs=BASE_ENV_KWARGS,
+            )

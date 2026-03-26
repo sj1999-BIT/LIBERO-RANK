@@ -79,8 +79,8 @@ import robosuite.utils.transform_utils as T
 def prep_for_display(img, instruction=None, lineLen=30):
     # only perform bgr to rgb if its 3 channels
     if img.shape[-1] == 3:
-        rgb = img[..., ::-1]
-    rgb = np.flipud(rgb).copy()
+        img = img[..., ::-1]
+    img = np.flipud(img).copy()
     if instruction is not None:
         words = instruction.split()
         lines, line = [], []
@@ -92,9 +92,9 @@ def prep_for_display(img, instruction=None, lineLen=30):
         if line:
             lines.append(" ".join(line))
         for i, text in enumerate(lines):
-            cv2.putText(rgb, text, (5, 15 + i * 18),
+            cv2.putText(img, text, (5, 15 + i * 18),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
-    return rgb
+    return img
 
 
 def create_title(cur_instruction):
@@ -701,12 +701,12 @@ def generate_trajectory(
                         
                         # store raw images, not prep_for_display frames
                         # change the frames.append line to:
-                        agentview_images.append(obs["agentview_image"])          # raw
-                        eye_in_hand_images.append(obs["robot0_eye_in_hand_image"])  # raw
+                        agentview_images.append(prep_for_display(obs["agentview_image"]))          # raw
+                        eye_in_hand_images.append(prep_for_display(obs["robot0_eye_in_hand_image"]))  # raw
 
                         # collect depth 
-                        agentview_depths.append(obs["agentview_depth"])            # ← add
-                        eye_in_hand_depths.append(obs["robot0_eye_in_hand_depth"]) # ← add
+                        agentview_depths.append(prep_for_display(obs["agentview_depth"]))            # ← add
+                        eye_in_hand_depths.append(prep_for_display(obs["robot0_eye_in_hand_depth"])) # ← add
 
                         # collect reward
                         all_rewards.append(reward)
@@ -886,7 +886,7 @@ if __name__ == "__main__":
                     is_log_printed=True,
                     is_save_video=True,
                     save_video_path=cur_trajectory_output_path,
-                    env_grid_len=1,
+                    env_grid_len=4,
                     logger=logger,          # ← pass it in
                 )
 

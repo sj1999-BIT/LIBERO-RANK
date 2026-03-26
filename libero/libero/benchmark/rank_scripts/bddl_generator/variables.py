@@ -62,7 +62,7 @@ OBJECT_SPACING_REQUIREMENTS = {
     "white_bowl": 6,
     "basket": 5,
     "milk": 3,
-    "moka_pot": 6,
+    "moka_pot": 7,
     "glazed_rim_porcelain_ramekin": 5,
     "tomato_sauce": 4,
     "alphabet_soup": 3,
