@@ -34,14 +34,13 @@ from libero.libero.benchmark.rank_scripts.bddl_generator import (
     OBJECT_POOL,
     BOWL_POOL,
 )
-from trajectory_generator import generate_trajectory, AutoGenPolicy
+from trajectory_generator_backup import generate_trajectory, AutoGenPolicy
 
 # ── tuneable constants ────────────────────────────────────────────────────────
 CAP_INDEX       = 0      # drop first N steps (force sensor unstable)
 N_DEMOS         = 30
-HDF5_ROOT       = "/Hyperplane/shuijie/hdf5_trajectory_data"
+HDF5_ROOT       = "/Hyperplane/shuijie/trajectory_data/libero_rank"   # where to save HDF5 files
 ROBOT_STATE_DIM = 8      # change to 9 if you add gripper_qvel[:1]
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HDF5 writer
